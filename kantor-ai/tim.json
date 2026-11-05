@@ -1,0 +1,51 @@
+{
+  "_catatan": "Susunan tim Kantor AI. Ubah bebas; server memuat ulang otomatis. Aturan dicek berurutan: divisi dipilih dari folder file, lalu karyawan pertama yang aturannya cocok. 'namaMengandung' = kata di nama file, 'ekstensi' = akhiran file, 'alat' = nama alat Claude (boleh diakhiri *), 'semua' = penampung divisi.",
+  "manager": { "nama": "Maya", "peran": "Manager" },
+  "bos": { "nama": "Bos", "peran": "Pemilik" },
+  "divisi": [
+    {
+      "id": "umum",
+      "nama": "Umum & Dokumentasi",
+      "warna": "#7aa2f7",
+      "folder": ["README.md", ".gitignore"],
+      "karyawan": [
+        { "nama": "Dewi", "peran": "Penulis dokumen", "aturan": { "ekstensi": [".md", ".txt"] } },
+        { "nama": "Arif", "peran": "Admin umum", "aturan": { "semua": true } }
+      ]
+    },
+    {
+      "id": "teknik",
+      "nama": "Teknik",
+      "warna": "#9ece6a",
+      "folder": ["kantor-ai/", ".claude/"],
+      "karyawan": [
+        { "nama": "Bima", "peran": "Frontend", "aturan": { "folder": ["kantor-ai/public/"], "ekstensi": [".html", ".css"] } },
+        { "nama": "Sari", "peran": "Backend", "aturan": { "ekstensi": [".js", ".json"], "alat": ["Bash"] } },
+        { "nama": "Tono", "peran": "Pengelola pengaturan", "aturan": { "semua": true } }
+      ]
+    },
+    {
+      "id": "pemasaran",
+      "nama": "Pemasaran",
+      "warna": "#f7768e",
+      "folder": ["pemasaran/", "konten/"],
+      "karyawan": [
+        { "nama": "Rina", "peran": "Pengiklan", "aturan": { "namaMengandung": ["iklan", "ads", "promo"] } },
+        { "nama": "Joko", "peran": "Penulis konten", "aturan": { "namaMengandung": ["konten", "ide", "caption", "artikel"] } },
+        { "nama": "Lia", "peran": "Staf pemasaran", "aturan": { "semua": true } }
+      ]
+    },
+    {
+      "id": "riset",
+      "nama": "Riset & Layanan Luar",
+      "warna": "#e0af68",
+      "folder": [],
+      "karyawan": [
+        { "nama": "Andi", "peran": "Peneliti web", "aturan": { "alat": ["WebSearch", "WebFetch", "Grep", "Glob"] } },
+        { "nama": "Putri", "peran": "Penghubung layanan", "aturan": { "alat": ["mcp__*", "Artifact", "SendUserFile", "PushNotification"] } },
+        { "nama": "Eko", "peran": "Asisten umum", "aturan": { "semua": true } }
+      ]
+    }
+  ],
+  "cadangan": "riset"
+}
