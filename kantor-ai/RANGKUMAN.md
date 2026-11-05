@@ -1,7 +1,7 @@
 # Rangkuman Kantor AI: Sriwijaya Andalan Perkasa
 
 Catatan ini untuk melanjutkan pekerjaan: apa yang sudah dibuat, cara menjalankannya,
-dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 5 November 2026.
+dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 5 November 2026 (perbaikan hook untuk Windows).
 
 ## Apa ini
 
@@ -42,9 +42,13 @@ Perlu **Node.js** (https://nodejs.org). Tidak perlu `npm install`, karena tidak 
 | `public/gaya.css` | Warna, huruf, dan tata letak panel. |
 | `public/vendor/` | Three.js 0.160.0 disimpan lokal, jadi halaman jalan tanpa internet. |
 | `jalankan.bat` / `jalankan.sh` | Alat menjalankan dengan sekali klik atau perintah. |
+| `cek.bat` | Pemeriksaan di Windows kalau kantor tetap diam (Node, hook, catatan, server). |
 | `data/aktivitas.jsonl` | Catatan aksi. Tidak masuk git. Hapus untuk mulai bersih. |
 
-Hook dipasang di `.claude/settings.json` (PreToolUse, UserPromptSubmit, Stop).
+Hook dipasang di `.claude/settings.json` (PreToolUse, UserPromptSubmit, Stop). Perintahnya
+`node -e "try{require(require('path').join(process.env.CLAUDE_PROJECT_DIR||process.cwd(),'kantor-ai','hook.js'))}catch(e){}"`.
+Node sendiri yang membaca lokasi proyek, jadi perintah ini jalan di Git Bash, PowerShell, maupun cmd.
+Versi lama (`node "$CLAUDE_PROJECT_DIR/..."`) hanya jalan di bash. Cadangannya ada di `.claude/settings.json.cadangan`.
 
 ## Susunan tim saat ini (`tim.json`)
 
@@ -110,6 +114,14 @@ Perubahan `server.js`, `pemetaan.js`, atau `hook.js` butuh restart server (tutup
   dan berhenti sendiri setelah 1,5 detik bila macet.
 - Server hanya menerima akses dari komputer ini (127.0.0.1, Host harus localhost).
 
+## Kalau kantor tetap diam saat Claude bekerja
+
+1. Dobel-klik `kantor-ai\cek.bat` dan baca hasilnya.
+2. **Tutup Claude lalu buka lagi** setelah `git pull`, karena hook dibaca saat Claude mulai.
+3. Pastikan `claude` dijalankan dari folder proyek (`cd /d D:\SAP\KantoAI\onlineexpress`).
+4. Di Claude ketik `/hooks`: harus ada PreToolUse, UserPromptSubmit, dan Stop.
+5. Saat ditanya "trust this folder", jawab **Yes**. Kalau dijawab No, hook tidak dijalankan.
+
 ## Keterbatasan yang diketahui
 
 - Tanda ⚠ berupa pencocokan pola, jadi bisa terlewat. Contohnya `node kirim.js` yang mengirim email
@@ -117,7 +129,8 @@ Perubahan `server.js`, `pemetaan.js`, atau `hook.js` butuh restart server (tutup
 - Hanya tiga hook yang dipasang. Lamanya perintah berjalan tidak terlihat: monitor menyala saat aksi
   dimulai dan tetap menyala sampai giliran selesai.
 - Giliran tanpa kabar selama 10 menit dianggap berhenti (monitor dimatikan).
-- `jalankan.bat` belum diuji di Windows sungguhan. `jalankan.sh` sudah diuji di Linux.
+- `jalankan.bat` dan `cek.bat` belum diuji di Windows sungguhan. `jalankan.sh` dan perintah hook baru sudah diuji di Linux (bash dan sh).
+- Di Windows (D:\SAP\KantoAI\onlineexpress), kantor sempat diam dengan hook versi lama. Perbaikannya (no. 7) belum dikonfirmasi di sana.
 
 ## Riwayat perubahan
 
@@ -127,6 +140,7 @@ Perubahan `server.js`, `pemetaan.js`, atau `hook.js` butuh restart server (tutup
 4. Nama kantor *Sriwijaya Andalan Perkasa* (hitam, biru muda, kuning)
 5. Ganti nama karyawan, lantai abu-abu muda
 6. Alat jalankan (`jalankan.bat`, `jalankan.sh`) dan rangkuman ini
+7. Hook tidak bergantung jenis terminal (perbaikan untuk Windows), `cek.bat` untuk pemeriksaan
 
 Semua ada di branch `claude/practical-gauss-ngei1a` di GitHub `vimax707/onlineexpress`.
 

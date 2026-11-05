@@ -11,7 +11,8 @@ const fs = require('fs');
 const path = require('path');
 
 const LOG_DIR = path.join(__dirname, 'data');
-const LOG_FILE = path.join(LOG_DIR, 'aktivitas.jsonl');
+// KANTOR_LOG hanya dipakai alat cek, supaya uji tidak muncul sebagai aksi palsu di kantor.
+const LOG_FILE = process.env.KANTOR_LOG || path.join(LOG_DIR, 'aktivitas.jsonl');
 
 // Alat yang mengubah file.
 const ALAT_UBAH = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
@@ -99,7 +100,7 @@ function catat(input) {
   }
   // UserPromptSubmit & Stop: hanya penanda waktu, isi prompt tidak disentuh.
 
-  fs.mkdirSync(LOG_DIR, { recursive: true });
+  fs.mkdirSync(path.dirname(LOG_FILE), { recursive: true });
   fs.appendFileSync(LOG_FILE, JSON.stringify(baris) + '\n');
 }
 

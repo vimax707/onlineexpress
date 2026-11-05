@@ -4,21 +4,33 @@
       {
         "matcher": "*",
         "hooks": [
-          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/kantor-ai/hook.js\"", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "node -e \"try{require(require('path').join(process.env.CLAUDE_PROJECT_DIR||process.cwd(),'kantor-ai','hook.js'))}catch(e){}\"",
+            "timeout": 5
+          }
         ]
       }
     ],
     "UserPromptSubmit": [
       {
         "hooks": [
-          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/kantor-ai/hook.js\"", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "node -e \"try{require(require('path').join(process.env.CLAUDE_PROJECT_DIR||process.cwd(),'kantor-ai','hook.js'))}catch(e){}\"",
+            "timeout": 5
+          }
         ]
       }
     ],
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/kantor-ai/hook.js\"", "timeout": 5 }
+          {
+            "type": "command",
+            "command": "node -e \"try{require(require('path').join(process.env.CLAUDE_PROJECT_DIR||process.cwd(),'kantor-ai','hook.js'))}catch(e){}\"",
+            "timeout": 5
+          }
         ]
       }
     ]
