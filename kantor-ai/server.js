@@ -94,7 +94,11 @@ function proses(b, siar) {
 function bacaBaru(siar) {
   let st;
   try { st = fs.statSync(LOG_FILE); } catch (_) { return; }
-  if (st.size < offset) { offset = 0; sisa = ''; } // file dipotong/diganti
+  if (st.size < offset) { // file dipotong/diganti: bangun ulang dari awal
+    putarUlang();
+    if (siar) kirim(snapshot());
+    return;
+  }
   if (st.size === offset) return;
   const fd = fs.openSync(LOG_FILE, 'r');
   try {
@@ -128,6 +132,9 @@ const STATIS = {
   '/': ['public/index.html', 'text/html; charset=utf-8'],
   '/kantor.js': ['public/kantor.js', 'text/javascript; charset=utf-8'],
   '/gaya.css': ['public/gaya.css', 'text/css; charset=utf-8'],
+  '/vendor/three.module.min.js': ['public/vendor/three.module.min.js', 'text/javascript; charset=utf-8'],
+  '/vendor/OrbitControls.js': ['public/vendor/OrbitControls.js', 'text/javascript; charset=utf-8'],
+  '/vendor/CSS2DRenderer.js': ['public/vendor/CSS2DRenderer.js', 'text/javascript; charset=utf-8'],
 };
 
 const server = http.createServer((req, res) => {

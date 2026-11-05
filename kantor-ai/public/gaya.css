@@ -1,0 +1,76 @@
+:root {
+  --latar: #f5f6f8;
+  --kertas: #ffffff;
+  --garis: #e3e6eb;
+  --teks: #1f2430;
+  --redup: #6b7280;
+  --hijau: #16a34a;
+  --merah: #dc2626;
+  --merah-latar: #fef2f2;
+  --biru: #2563eb;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--latar); color: var(--teks);
+  font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+#tata { display: grid; grid-template-columns: 1fr 360px; height: 100vh; }
+#panggung { position: relative; min-width: 0; }
+#kanvas { position: absolute; inset: 0; }
+#atas { position: absolute; z-index: 2; top: 14px; left: 16px; display: flex; gap: 12px; align-items: center; pointer-events: none; }
+#atas h1 { margin: 0; font-size: 16px; font-weight: 650; }
+#petunjuk { position: absolute; z-index: 2; bottom: 8px; left: 16px; margin: 0; font-size: 11px; color: var(--redup); }
+.status { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
+  background: var(--kertas); border: 1px solid var(--garis); font-size: 12px; }
+.status i { width: 8px; height: 8px; border-radius: 50%; background: #9ca3af; }
+.status b { font-weight: 500; }
+.status.kerja i { background: var(--hijau); }
+.status.putus i { background: var(--merah); }
+
+#panel { display: flex; flex-direction: column; gap: 12px; padding: 12px; overflow: hidden;
+  background: var(--latar); border-left: 1px solid var(--garis); }
+.kotak { background: var(--kertas); border: 1px solid var(--garis); border-radius: 10px;
+  display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.kotak h2 { margin: 0; padding: 10px 12px; font-size: 13px; font-weight: 600; border-bottom: 1px solid var(--garis); }
+.kotak h2 small { color: var(--redup); font-weight: 400; }
+.kotak ol { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; }
+.kosong { padding: 12px; color: var(--redup); font-size: 12px; }
+
+.aksi { display: grid; grid-template-columns: 42px 1fr; gap: 2px 8px; padding: 6px 12px; border-bottom: 1px solid #f0f1f4; font-size: 12px; }
+.aksi time { color: var(--redup); font-variant-numeric: tabular-nums; }
+.aksi .siapa { font-weight: 600; }
+.aksi .siapa::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--warna, #9ca3af); margin-right: 5px; vertical-align: 1px; }
+.aksi .apa { grid-column: 2; color: #374151; word-break: break-word; }
+.aksi.baru { animation: muncul 1.2s ease-out; }
+@keyframes muncul { from { background: #eff6ff; } to { background: transparent; } }
+
+.tanda-luar { display: inline-block; margin-left: 6px; padding: 0 6px; border-radius: 4px; font-size: 11px;
+  color: var(--merah); background: var(--merah-latar); border: 1px solid #fecaca; }
+
+.laporan { padding: 10px 12px; border-bottom: 1px solid #f0f1f4; font-size: 12px; }
+.laporan .kepala { display: flex; justify-content: space-between; color: var(--redup); margin-bottom: 4px; }
+.laporan .ringkas { font-weight: 600; margin-bottom: 4px; }
+.laporan ul { margin: 0; padding-left: 16px; }
+.laporan li { margin: 1px 0; }
+.laporan .luar { margin-top: 6px; padding: 6px 8px; border-radius: 6px; background: var(--merah-latar);
+  border: 1px solid #fecaca; color: #991b1b; }
+.laporan .luar strong { display: block; margin-bottom: 2px; }
+
+/* Label 3D */
+.nama { font-size: 10px; color: #4b5563; background: rgba(255,255,255,.85); padding: 0 4px; border-radius: 3px;
+  white-space: nowrap; pointer-events: none; }
+.nama.bos { font-weight: 600; color: var(--teks); }
+.nama.aktif { background: #dcfce7; color: #14532d; }
+.gelembung { font-size: 11px; color: var(--teks); background: #fff; border: 1px solid var(--garis);
+  box-shadow: 0 2px 6px rgba(0,0,0,.08); padding: 3px 7px; border-radius: 7px; white-space: nowrap;
+  max-width: 240px; overflow: hidden; text-overflow: ellipsis; pointer-events: none; transition: opacity .3s; }
+.gelembung.luar { border-color: #fca5a5; color: #991b1b; background: var(--merah-latar); }
+.gelembung.sembunyi { opacity: 0; }
+.papan-ruang { font-size: 12px; font-weight: 600; color: #374151; background: rgba(255,255,255,.9); padding: 1px 8px; border-radius: 4px; letter-spacing: .02em; pointer-events: none;
+  white-space: nowrap; }
+
+@media (max-width: 860px) {
+  #tata { grid-template-columns: 1fr; grid-template-rows: 58vh auto; height: auto; }
+  #panggung { height: 58vh; }
+  #panel { border-left: 0; border-top: 1px solid var(--garis); padding: 12px 16px; overflow: visible; }
+  .kotak { max-height: 50vh; }
+}

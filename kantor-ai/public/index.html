@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kantor AI</title>
+<link rel="stylesheet" href="/gaya.css">
+<script type="importmap">
+{ "imports": {
+  "three": "/vendor/three.module.min.js",
+  "three/addons/OrbitControls.js": "/vendor/OrbitControls.js",
+  "three/addons/CSS2DRenderer.js": "/vendor/CSS2DRenderer.js"
+} }
+</script>
+</head>
+<body>
+<main id="tata">
+  <section id="panggung">
+    <header id="atas">
+      <h1>Kantor AI</h1>
+      <span id="status" class="status diam"><i></i><b>Menyambung…</b></span>
+    </header>
+    <div id="kanvas"></div>
+    <p id="petunjuk">Seret untuk memutar · gulir untuk zoom</p>
+  </section>
+  <aside id="panel">
+    <section class="kotak">
+      <h2>Aktivitas karyawan <small id="jumlah-aksi"></small></h2>
+      <ol id="daftar-aksi"><li class="kosong">Belum ada aksi tercatat.</li></ol>
+    </section>
+    <section class="kotak">
+      <h2>Laporan Manager</h2>
+      <ol id="daftar-laporan"><li class="kosong">Belum ada laporan. Manager menulis laporan tiap kali Claude selesai menjawab.</li></ol>
+    </section>
+  </aside>
+</main>
+<script type="module" src="/kantor.js"></script>
+</body>
+</html>
