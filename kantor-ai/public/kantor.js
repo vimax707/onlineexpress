@@ -23,7 +23,7 @@ label2d.domElement.style.pointerEvents = 'none';
 wadah.appendChild(label2d.domElement);
 
 const adegan = new THREE.Scene();
-adegan.background = new THREE.Color('#f5f6f8');
+adegan.background = new THREE.Color('#eef0f3');
 const kamera = new THREE.PerspectiveCamera(40, 1, 0.1, 200);
 const kontrol = new OrbitControls(kamera, renderer.domElement);
 kontrol.enableDamping = true;
@@ -39,7 +39,7 @@ matahari.shadow.mapSize.set(2048, 2048);
 matahari.shadow.radius = 4;
 adegan.add(matahari);
 
-const lantai = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: '#fbfbfc' }));
+const lantai = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshStandardMaterial({ color: '#e4e6ea' }));
 lantai.rotation.x = -Math.PI / 2;
 lantai.receiveShadow = true;
 adegan.add(lantai);

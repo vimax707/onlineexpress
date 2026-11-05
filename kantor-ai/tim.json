@@ -7,7 +7,7 @@
       { "teks": "Perkasa", "warna": "#facc15" }
     ]
   },
-  "manager": { "nama": "Maya", "peran": "Manager" },
+  "manager": { "nama": "Ena", "peran": "Manager" },
   "bos": { "nama": "Bos", "peran": "Pemilik" },
   "divisi": [
     {
@@ -16,8 +16,8 @@
       "warna": "#7aa2f7",
       "folder": ["README.md", ".gitignore"],
       "karyawan": [
-        { "nama": "Dewi", "peran": "Penulis dokumen", "aturan": { "ekstensi": [".md", ".txt"] } },
-        { "nama": "Arif", "peran": "Admin umum", "aturan": { "semua": true } }
+        { "nama": "Wanda", "peran": "Penulis dokumen", "aturan": { "ekstensi": [".md", ".txt"] } },
+        { "nama": "Flo", "peran": "Admin umum", "aturan": { "semua": true } }
       ]
     },
     {
@@ -26,9 +26,9 @@
       "warna": "#9ece6a",
       "folder": ["kantor-ai/", ".claude/"],
       "karyawan": [
-        { "nama": "Bima", "peran": "Frontend", "aturan": { "folder": ["kantor-ai/public/"], "ekstensi": [".html", ".css"] } },
-        { "nama": "Sari", "peran": "Backend", "aturan": { "ekstensi": [".js", ".json"], "alat": ["Bash"] } },
-        { "nama": "Tono", "peran": "Pengelola pengaturan", "aturan": { "semua": true } }
+        { "nama": "Bayu", "peran": "Frontend", "aturan": { "folder": ["kantor-ai/public/"], "ekstensi": [".html", ".css"] } },
+        { "nama": "Ayu", "peran": "Backend", "aturan": { "ekstensi": [".js", ".json"], "alat": ["Bash"] } },
+        { "nama": "Nana", "peran": "Pengelola pengaturan", "aturan": { "semua": true } }
       ]
     },
     {
@@ -37,9 +37,9 @@
       "warna": "#f7768e",
       "folder": ["pemasaran/", "konten/"],
       "karyawan": [
-        { "nama": "Rina", "peran": "Pengiklan", "aturan": { "namaMengandung": ["iklan", "ads", "promo"] } },
-        { "nama": "Joko", "peran": "Penulis konten", "aturan": { "namaMengandung": ["konten", "ide", "caption", "artikel"] } },
-        { "nama": "Lia", "peran": "Staf pemasaran", "aturan": { "semua": true } }
+        { "nama": "Maya", "peran": "Pengiklan", "aturan": { "namaMengandung": ["iklan", "ads", "promo"] } },
+        { "nama": "Reza", "peran": "Penulis konten", "aturan": { "namaMengandung": ["konten", "ide", "caption", "artikel"] } },
+        { "nama": "Diana", "peran": "Staf pemasaran", "aturan": { "semua": true } }
       ]
     },
     {
@@ -48,9 +48,9 @@
       "warna": "#e0af68",
       "folder": [],
       "karyawan": [
-        { "nama": "Andi", "peran": "Peneliti web", "aturan": { "alat": ["WebSearch", "WebFetch", "Grep", "Glob"] } },
+        { "nama": "Anis", "peran": "Peneliti web", "aturan": { "alat": ["WebSearch", "WebFetch", "Grep", "Glob"] } },
         { "nama": "Putri", "peran": "Penghubung layanan", "aturan": { "alat": ["mcp__*", "Artifact", "SendUserFile", "PushNotification"] } },
-        { "nama": "Eko", "peran": "Asisten umum", "aturan": { "semua": true } }
+        { "nama": "Wiwid", "peran": "Asisten umum", "aturan": { "semua": true } }
       ]
     }
   ],
