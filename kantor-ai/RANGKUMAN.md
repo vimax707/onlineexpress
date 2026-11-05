@@ -1,7 +1,7 @@
 # Rangkuman Kantor AI: Sriwijaya Andalan Perkasa
 
 Catatan ini untuk melanjutkan pekerjaan: apa yang sudah dibuat, cara menjalankannya,
-dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 5 November 2026 (perbaikan hook untuk Windows).
+dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 5 November 2026 (terbukti jalan di Windows).
 
 ## Apa ini
 
@@ -129,8 +129,9 @@ Perubahan `server.js`, `pemetaan.js`, atau `hook.js` butuh restart server (tutup
 - Hanya tiga hook yang dipasang. Lamanya perintah berjalan tidak terlihat: monitor menyala saat aksi
   dimulai dan tetap menyala sampai giliran selesai.
 - Giliran tanpa kabar selama 10 menit dianggap berhenti (monitor dimatikan).
-- `jalankan.bat` dan `cek.bat` belum diuji di Windows sungguhan. `jalankan.sh` dan perintah hook baru sudah diuji di Linux (bash dan sh).
-- Di Windows (D:\SAP\KantoAI\onlineexpress), kantor sempat diam dengan hook versi lama. Perbaikannya (no. 7) belum dikonfirmasi di sana.
+- **Sudah terbukti jalan di Windows** (D:\SAP\KantoAI\onlineexpress, Claude Code 2.1.318): hook mencatat,
+  monitor menyala, dan laporan Manager muncul. `cek.bat` belum pernah dijalankan di sana.
+- Hook versi lama (`$CLAUDE_PROJECT_DIR`) membuat kantor diam di Windows. Jangan kembalikan ke bentuk itu.
 
 ## Riwayat perubahan
 
