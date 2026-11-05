@@ -6,9 +6,14 @@ Claude sedang tidak bekerja, kantornya diam.
 
 ## Menjalankan
 
+Windows: dobel-klik `kantor-ai\jalankan.bat`. Mac/Linux: `sh kantor-ai/jalankan.sh`.
+Browser terbuka sendiri. Bisa juga manual:
+
 ```bash
 node kantor-ai/server.js
 ```
+
+Rangkuman lengkap untuk melanjutkan pekerjaan ada di `RANGKUMAN.md`.
 
 Buka http://127.0.0.1:4777. Server hanya mendengar di `127.0.0.1` dan menolak
 permintaan dengan Host selain `localhost`/`127.0.0.1`. Port bisa diganti: `PORT=5000 node kantor-ai/server.js`.

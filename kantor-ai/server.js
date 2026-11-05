@@ -171,7 +171,45 @@ fs.watchFile(TIM_FILE, { interval: 1000 }, () => {
   if (muatTim()) { putarUlang(); kirim(snapshot()); console.log('[kantor] tim.json dimuat ulang'); }
 });
 
+const ALAMAT = `http://${HOST}:${PORT}`;
+const BUKA = process.argv.includes('--buka');
+
+// Buka browser bawaan (dipakai oleh jalankan.bat / jalankan.sh).
+function bukaBrowser() {
+  const { spawn } = require('child_process');
+  const os = process.platform;
+  const [cmd, args] = os === 'win32' ? ['cmd', ['/c', 'start', '""', ALAMAT]]
+    : os === 'darwin' ? ['open', [ALAMAT]] : ['xdg-open', [ALAMAT]];
+  const gagal = () => console.log(`[kantor] Buka ${ALAMAT} di browser.`);
+  try {
+    const c = spawn(cmd, args, { stdio: 'ignore', detached: true, windowsVerbatimArguments: os === 'win32' });
+    c.on('error', gagal);
+    c.unref();
+  } catch (_) { gagal(); }
+}
+
+server.on('error', (e) => {
+  if (e.code !== 'EADDRINUSE') { console.error('[kantor] Server gagal:', e.message); process.exit(1); }
+  // Port terpakai: kalau itu Kantor AI yang sudah jalan, cukup buka halamannya.
+  http.get(`${ALAMAT}/api/status`, (r) => {
+    r.resume();
+    if (r.statusCode === 200) {
+      console.log(`[kantor] Kantor AI sudah jalan di ${ALAMAT}`);
+      if (BUKA) bukaBrowser();
+      setTimeout(() => process.exit(0), 300);
+    } else {
+      console.error(`[kantor] Port ${PORT} dipakai program lain. Coba port lain, misalnya: PORT=4778`);
+      process.exit(1);
+    }
+  }).on('error', () => {
+    console.error(`[kantor] Port ${PORT} dipakai program lain. Coba port lain, misalnya: PORT=4778`);
+    process.exit(1);
+  });
+});
+
 server.listen(PORT, HOST, () => {
-  console.log(`[kantor] Kantor AI jalan di http://${HOST}:${PORT}  (hanya komputer ini)`);
+  console.log(`[kantor] Kantor AI jalan di ${ALAMAT}  (hanya komputer ini)`);
   console.log(`[kantor] membaca ${LOG_FILE}`);
+  console.log('[kantor] Tekan Ctrl+C atau tutup jendela ini untuk mematikan.');
+  if (BUKA) bukaBrowser();
 });
