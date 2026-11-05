@@ -16,7 +16,10 @@ html, body { margin: 0; height: 100%; background: var(--latar); color: var(--tek
 #panggung { position: relative; min-width: 0; }
 #kanvas { position: absolute; inset: 0; }
 #atas { position: absolute; z-index: 2; top: 14px; left: 16px; display: flex; gap: 12px; align-items: center; pointer-events: none; }
-#atas h1 { margin: 0; font-size: 16px; font-weight: 650; }
+#atas h1 { margin: 0; padding: 3px 12px; font-size: 16px; font-weight: 750; letter-spacing: .01em;
+  background: var(--kertas); border: 1px solid var(--garis); border-radius: 8px; }
+/* Garis tipis gelap supaya kata berwarna terang (biru muda, kuning) tetap terbaca di latar putih. */
+#atas h1 .kata { -webkit-text-stroke: 0.35px rgba(0,0,0,.45); paint-order: stroke fill; }
 #petunjuk { position: absolute; z-index: 2; bottom: 8px; left: 16px; margin: 0; font-size: 11px; color: var(--redup); }
 .status { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px;
   background: var(--kertas); border: 1px solid var(--garis); font-size: 12px; }

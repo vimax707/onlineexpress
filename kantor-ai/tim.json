@@ -1,5 +1,12 @@
 {
   "_catatan": "Susunan tim Kantor AI. Ubah bebas; server memuat ulang otomatis. Aturan dicek berurutan: divisi dipilih dari folder file, lalu karyawan pertama yang aturannya cocok. 'namaMengandung' = kata di nama file, 'ekstensi' = akhiran file, 'alat' = nama alat Claude (boleh diakhiri *), 'semua' = penampung divisi.",
+  "kantor": {
+    "nama": [
+      { "teks": "Sriwijaya", "warna": "#111111" },
+      { "teks": "Andalan", "warna": "#38bdf8" },
+      { "teks": "Perkasa", "warna": "#facc15" }
+    ]
+  },
   "manager": { "nama": "Maya", "peran": "Manager" },
   "bos": { "nama": "Bos", "peran": "Pemilik" },
   "divisi": [

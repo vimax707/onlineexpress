@@ -353,10 +353,23 @@ function kartuLaporan(lap) {
   batasi(daftarLaporan);
 }
 
+// ---------- Nama kantor (dari tim.json -> kantor.nama) ----------
+function tulisNamaKantor(k) {
+  const h1 = document.querySelector('#atas h1');
+  const bagian = (k && Array.isArray(k.nama) && k.nama.length) ? k.nama : [{ teks: 'Kantor AI' }];
+  h1.replaceChildren(...bagian.flatMap((b, i) => {
+    const s = el('span', 'kata', b.teks);
+    if (b.warna) s.style.color = b.warna;
+    return i ? [document.createTextNode(' '), s] : [s];
+  }));
+  document.title = bagian.map((b) => b.teks).join(' ');
+}
+
 // ---------- Sambungan ke server ----------
 function terima(p) {
   if (p.type === 'awal') {
     window.__tim = p.tim;
+    tulisNamaKantor(p.tim.kantor);
     bangunKantor(p.tim);
     for (const m of meja.values()) { setLayar(m, 'mati'); gelembung(m, ''); }
     giliran.clear();

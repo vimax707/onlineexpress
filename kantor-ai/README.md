@@ -42,6 +42,9 @@ walau server sedang mati. Saat server dinyalakan, riwayat dibaca ulang dari cata
 
 Server memuat ulang file ini otomatis saat disimpan.
 
+- `kantor.nama`: nama kantor di pojok kiri atas dan judul tab, per kata dengan warnanya sendiri,
+  misalnya `{ "teks": "Andalan", "warna": "#38bdf8" }`.
+
 - `divisi[].folder`: folder (diakhiri `/`) atau file milik divisi. Folder terpanjang yang cocok menang.
 - `divisi[].karyawan[].aturan`: dicek berurutan, karyawan pertama yang cocok mendapat aksinya.
   - `namaMengandung`: kata di nama file, misalnya `["iklan"]`
