@@ -19,17 +19,27 @@ const ALAT_UBAH = new Set(['Write', 'Edit', 'MultiEdit', 'NotebookEdit']);
 // Pola perintah shell yang berdampak di luar folder ini.
 // Perintah hanya dibaca di memori untuk dicocokkan; yang disimpan hanya labelnya.
 const POLA_BASH = [
-  [/\bgit\s+push\b/, 'git push'],
-  [/\b(vercel|netlify|firebase|fly|wrangler|heroku|railway)\b[^|;&]*\bdeploy\b|\bvercel\s+(--prod|deploy)\b|\bdeploy\b/, 'deploy'],
-  [/\b(sendmail|mailx?|mutt|msmtp|swaks)\b/, 'kirim email'],
-  [/\b(npm|pnpm|yarn)\s+publish\b|\bcargo\s+publish\b|\btwine\s+upload\b/, 'publish paket'],
-  [/\bgh\s+(pr|issue|release|repo)\s+(create|merge|close|edit|delete|comment)\b/, 'ubah GitHub'],
-  [/\bcurl\b[^|;&]*(-X\s*(POST|PUT|PATCH|DELETE)|--data\b|-d\s|-F\s|--form\b)/i, 'kirim data ke internet'],
-  [/\b(docker|kubectl|terraform)\s+(push|apply|delete|destroy)\b/, 'ubah infrastruktur'],
+  [/^git\s+((-[Cc]\s+\S+|--?[\w-]+(=\S+)?)\s+)*push\b/, 'git push'],
+  [/^(vercel|netlify|firebase|fly|flyctl|wrangler|heroku|railway)\b.*\bdeploy\b|^vercel(\s+--prod)?\s*$|^vercel\s+--prod\b|^(\S*\/)?deploy(\.sh)?\b|^(npm|pnpm|yarn)\s+(run\s+)?deploy\b/, 'deploy'],
+  [/^(sendmail|mailx?|mutt|msmtp|swaks)\b/, 'kirim email'],
+  [/^(npm|pnpm|yarn)\s+publish\b|^cargo\s+publish\b|^twine\s+upload\b/, 'publish paket'],
+  [/^gh\s+(pr|issue|release|repo)\s+(create|merge|close|edit|delete|comment)\b/, 'ubah GitHub'],
+  [/^curl\b.*(-X\s*(POST|PUT|PATCH|DELETE)|--data\b|-d\s|-F\s|--form\b)/i, 'kirim data ke internet'],
+  [/^(docker|kubectl|terraform)\s+(push|apply|delete|destroy)\b/, 'ubah infrastruktur'],
 ];
 
 // Bagian nama alat MCP yang menandakan perubahan di layanan luar.
 const POLA_MCP_UBAH = /(^|_|-)(create|send|update|delete|deploy|publish|post|write|push|merge|trash|label|unlabel|schedule|upload|cancel|add|remove|edit|set|execute|run|fire|archive|unarchive|buy|transfer|promote|rollback|approve|mark|reply|respond|move|copy|duplicate|restore|stop|install|activate|revoke|assign|invalidate|pause|unpause|mutate|enable|disable|resolve|submit|record|patch|replace|stage|issue|kill|generate|import|comment|spawn)(_|-|$)/i;
+
+// Pecah perintah shell menjadi perintah-perintah tunggal; buang isi tanda kutip,
+// heredoc, dan awalan seperti VAR=x, sudo, npx, cd .. &&.
+function potongPerintah(cmd) {
+  const tanpaHeredoc = cmd.replace(/<<-?\s*['"]?(\w+)['"]?[^\n]*\n[\s\S]*?\n\1\b/g, '');
+  const tanpaKutip = tanpaHeredoc.replace(/'[^']*'|"(?:[^"\\]|\\.)*"/g, '""');
+  return tanpaKutip.split(/\n|;|&&|\|\||\||\$\(|`|\(/)
+    .map((x) => x.trim().replace(/^((\w+=\S*|sudo|npx|pnpm\s+dlx|exec|time|nohup|env|do|then|else|if|while|until|!|\{)\s+)+/, ''))
+    .filter(Boolean);
+}
 
 function relatif(p, root) {
   if (!p || typeof p !== 'string') return null;
@@ -60,7 +70,12 @@ function catat(input) {
     let luar = null;
     if (r && r.luarFolder && ALAT_UBAH.has(tool)) luar = 'ubah file di luar folder';
     if (tool === 'Bash' && typeof ti.command === 'string') {
-      for (const [re, label] of POLA_BASH) if (re.test(ti.command)) { luar = label; break; }
+      // Cocokkan hanya di awal tiap perintah (bukan teks di dalam tanda kutip/data),
+      // supaya kata "git push" di dalam string uji tidak dianggap push sungguhan.
+      for (const seg of potongPerintah(ti.command)) {
+        for (const [re, label] of POLA_BASH) if (re.test(seg)) { luar = label; break; }
+        if (luar) break;
+      }
       // Kirim data hanya ke komputer ini (localhost) bukan aksi luar.
       if (luar === 'kirim data ke internet') {
         const url = ti.command.match(/https?:\/\/[^\s'"]+/g) || [];

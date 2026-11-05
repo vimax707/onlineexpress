@@ -27,6 +27,8 @@ walau server sedang mati. Saat server dinyalakan, riwayat dibaca ulang dari cata
    misalnya `git push`, `deploy`, `kirim email`, mengubah file di luar folder project,
    atau alat MCP yang mengubah layanan luar (create/send/update/deploy/…).
    Untuk perintah shell, isi perintah hanya dicocokkan di memori; yang disimpan hanya labelnya.
+   Pola hanya dicocokkan di awal tiap perintah (setelah `;`, `&&`, `|`, baris baru), sehingga teks
+   di dalam tanda kutip atau heredoc, misalnya `git commit -m "nanti git push"`, tidak ikut ditandai.
    Ini pencocokan pola, jadi bisa terlewat atau salah tanda. Lihat `POLA_BASH` di `hook.js`.
 3. **Server** (`server.js`, Node murni) membaca catatan tiap 250 ms, memetakan aksi ke
    karyawan menurut `tim.json`, lalu mengirimnya ke browser lewat Server-Sent Events.
