@@ -1,7 +1,7 @@
 # Rangkuman Kantor AI: Sriwijaya Andalan Perkasa
 
 Catatan ini untuk melanjutkan pekerjaan: apa yang sudah dibuat, cara menjalankannya,
-dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 10 November 2026 (Ruang Kontrol 24 jam dengan shift).
+dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 10 November 2026 (tata letak baru, Ruang Kontrol meniru ruang asli).
 
 ## Apa ini
 
@@ -10,7 +10,8 @@ Halaman web yang menampilkan kerja Claude Code sebagai kantor 3D. Setiap aksi Cl
 dengan label kecil, misalnya `nulis · ide_konten.md`. Setelah Claude selesai menjawab,
 Manager (Ena) merangkum giliran itu jadi satu laporan ke Bos (kamu).
 Ada juga **Ruang Kontrol 24 jam** (6 PC, TV 65" dan 43") yang dijaga 2 orang per shift sesuai
-jadwal Excel, diawasi Maya, dan **Ruang Istirahat & Rekreasi** untuk operator yang tidak bertugas.
+jadwal Excel, diawasi Maya, serta **Ruang Istirahat** dan **Ruang Rekreasi** (terpisah) untuk operator
+yang tidak bertugas.
 
 **Prinsip utama: semua yang tampil itu kerja sungguhan.** Tidak ada status acak atau
 aktivitas karangan. Kalau Claude sedang tidak bekerja, kantornya diam.
@@ -87,6 +88,20 @@ Edit `kantor-ai/tim.json` lalu simpan. Server memuat ulang file ini sendiri, tan
 - Kalau file rusak (koma atau kutip hilang), terminal server menampilkan `tim.json tidak bisa dibaca`
   dan kantor tetap memakai susunan lama.
 
+## Tata letak ruangan
+
+Diatur di `tim.json`, bagian `"tataLetak"`: daftar baris dari belakang ke depan, tiap baris berisi id ruang.
+Id yang bisa dipakai: id divisi (`umum`, `teknik`, `pemasaran`, `riset`), `kontrol`, `istirahat`, `rekreasi`, `bos`.
+Ruang yang tidak disebut ditaruh di baris tambahan di depan, jadi tidak ada yang hilang. Simpan, dan kantor langsung berubah.
+
+Susunan sekarang (dilihat dari depan, Ruang Bos paling dekat):
+
+```
+[ Ruang Kontrol (panjang)        ] [ Riset & Layanan Luar ]
+[ Umum ] [ Teknik ] [ Ruang Istirahat ]
+[ Ruang Rekreasi ] [ Pemasaran ] [ Ruang Bos ]
+```
+
 ## Ruang Kontrol & shift
 
 Pengaturan di `tim.json`, bagian `"ruangKontrol"`. Jadwal di `kantor-ai/jadwal.xlsx`.
@@ -98,15 +113,17 @@ Pengaturan di `tim.json`, bagian `"ruangKontrol"`. Jadwal di `kantor-ai/jadwal.x
 | Operator (7) | Anis, Wiwid, Reza, Flo, Nana, Ayu, Diana |
 | Bisa jadi PJ (4) | Wiwid, Flo, Diana, Anis |
 | Pengawas | Maya (mejanya dipindah dari Pemasaran ke belakang operator di Ruang Kontrol) |
+| Bentuk ruang | Meniru foto ruang kontrol asli: dinding jendela bertirai hijau mint, TV 65" di tengah, TV 43" di kiri pada tiang, 3 meja kayu dengan 6 PC berjajar, CPU dengan 3 kipas RGB di bawah meja, kursi kantor hitam, AC, rak jaringan, lantai keramik putih |
 | Layar | PC 1–4 = Umum, Teknik, Pemasaran, Riset → tampil di **TV 65"**; PC 5 = shift & petugas, PC 6 = laporan Manager → tampil di **TV 43"** |
 
 Cara kerjanya:
 - Petugas shift duduk di Ruang Kontrol (operator di depan PC 1–3, PJ di depan PC 4–6).
-  Operator lain duduk di Ruang Istirahat & Rekreasi. Pergantian shift mengikuti jam komputer, dicek tiap 15 detik.
+  Operator lain yang tidak bertugas: 2 orang pertama main pingpong di Ruang Rekreasi (berdiri), sisanya duduk
+  di Ruang Istirahat. Urutannya tetap (menurut daftar operator), bukan acak. Pergantian shift mengikuti jam komputer, dicek tiap 15 detik.
 - Kalau Claude mengerjakan file milik operator yang sedang istirahat, pekerjaan itu **diambil petugas shift**
   dan tertulis "Reza (tugas Ayu)". Aksi yang berdampak di luar folder (⚠) yang jatuh ke operator selalu ditangani **PJ**.
   Karyawan yang bukan operator (Wanda, Bayu, Putri) tetap bekerja di mejanya.
-- PC divisi menyala (bingkai hijau) saat ada aksi di divisi itu. TV menampilkan isi PC-nya. Semua layar hanya
+- PC divisi menyala (bingkai hijau, kipas RGB CPU menyala) saat ada aksi di divisi itu. TV menampilkan isi PC-nya. Semua layar hanya
   digambar ulang saat ada aksi, laporan, atau pergantian shift.
 - Kalau shift tertentu tidak ada petugasnya di jadwal, operator bekerja di meja divisinya seperti biasa.
 
@@ -128,14 +145,18 @@ paling banyak 1 shift sehari, tidak langsung dari Malam ke Pagi.
 | Warna latar di kejauhan | `kantor.js`, `adegan.background` |
 | Warna lantai ruangan (warna divisi dicampur putih 82%) | `kantor.js`, `buatRuang`, `campur(warna, 0.82)` |
 | Warna ruangan | `tim.json`, `"warna"` di tiap divisi |
-| Jarak antar meja | `kantor.js`, `const JX = 2.3, JZ = 2.7` |
-| Jarak antar baris ruangan | `kantor.js`, `z += tinggiBaris + 2.4` |
+| Jarak antar meja divisi | `kantor.js`, `pembangunDivisi`, `const JX = 2.3, JZ = 2.7` |
+| Jarak antar ruangan | `kantor.js`, `bangunKantor`, `JARAK_X = 1.6, JARAK_Z = 2.3` |
 | Warna baju Bos / Manager | `kantor.js`, `'#334155'` (Bos), `'#8b5cf6'` (Manager) |
 | Warna layar monitor yang menyala | `kantor.js`, `LAYAR_NYALA` |
 | Posisi awal kamera (otomatis memuat seluruh kantor) | `kantor.js`, `pasKamera()`, arah `new THREE.Vector3(0, 0.82, 0.57)` |
-| Ukuran/letak TV 65" & 43" | `kantor.js`, `bangunRuangKontrol`, `buatTv(1.44, 0.81, …)` dan `buatTv(0.95, 0.534, …)` |
+| Ukuran/letak TV 65" & 43" | `kantor.js`, `pembangunKontrol`, `buatTv(1.44, 0.81, …)` dan `buatTv(0.95, 0.534, …)` |
 | Isi layar PC/TV | `kantor.js`, `gambarDivisi`, `gambarShift`, `gambarLaporan` |
-| Perabot ruang istirahat | `kantor.js`, `bangunRuangIstirahat` (sofa, meja kopi, pingpong, tanaman, bean bag) |
+| Susunan ruangan | `tim.json`, `"tataLetak"` (lihat bagian Tata letak) |
+| Isi Ruang Kontrol (tirai, TV, meja, PC, kursi) | `kantor.js`, `pembangunKontrol` |
+| Ruang Istirahat (sofa, meja kopi, bean bag) | `kantor.js`, `pembangunIstirahat` |
+| Ruang Rekreasi (pingpong, bangku, mesin minuman) | `kantor.js`, `pembangunRekreasi` |
+| Warna kipas RGB | `kantor.js`, `WARNA_KIPAS` |
 | Ukuran nama karyawan, gelembung label | `gaya.css`, `.nama`, `.gelembung` |
 | Panel kanan (lebar 360px, kartu laporan) | `gaya.css`, `#tata`, `.laporan`, `.aksi` |
 
@@ -188,6 +209,8 @@ Perubahan `server.js`, `pemetaan.js`, atau `hook.js` butuh restart server (tutup
 7. Hook tidak bergantung jenis terminal (perbaikan untuk Windows), `cek.bat` untuk pemeriksaan
 8. Ruang Kontrol 24 jam (6 PC, TV 65" & 43", PJ + operator per shift, Maya pengawas),
    Ruang Istirahat & Rekreasi, jadwal shift dari Excel
+9. Tata letak baru lewat `tataLetak`: Ruang Kontrol panjang di tempat Umum & Teknik, meniru foto ruang
+   kontrol asli; Ruang Istirahat dan Rekreasi dipisah; Pemasaran di sebelah Ruang Bos
 
 Semua ada di branch `claude/practical-gauss-ngei1a` di GitHub `vimax707/onlineexpress`.
 

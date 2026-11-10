@@ -73,6 +73,14 @@ const bahan = {
   pot: new THREE.MeshStandardMaterial({ color: '#e7e2da' }),
   dindingVideo: new THREE.MeshStandardMaterial({ color: '#d4d8de', roughness: 0.8 }),
   bezel: new THREE.MeshStandardMaterial({ color: '#16181c', roughness: 0.3 }),
+  kayuMeja: new THREE.MeshStandardMaterial({ color: '#e6cfa6', roughness: 0.65 }),
+  alasMeja: new THREE.MeshStandardMaterial({ color: '#1f2228', roughness: 0.9 }),
+  kursiHitam: new THREE.MeshStandardMaterial({ color: '#25282e', roughness: 0.7 }),
+  dindingKontrol: new THREE.MeshStandardMaterial({ color: '#eef2ee', roughness: 0.9 }),
+  tirai1: new THREE.MeshStandardMaterial({ color: '#3fc7a2', roughness: 0.95 }),
+  tirai2: new THREE.MeshStandardMaterial({ color: '#56d3b2', roughness: 0.95 }),
+  putih: new THREE.MeshStandardMaterial({ color: '#fafafa', roughness: 0.5 }),
+  celana: new THREE.MeshStandardMaterial({ color: '#3b4252', roughness: 0.8 }),
 };
 const LAYAR_MATI = new THREE.Color('#1c1f24');
 const LAYAR_NYALA = new THREE.Color('#8fd0ff');
@@ -143,15 +151,22 @@ function buatOrang(teksNama, warna, kelasNama = 'nama') {
   const kepala = new THREE.Mesh(new THREE.SphereGeometry(0.16, 20, 16), bahan.kulit);
   kepala.position.y = 1.3; kepala.castShadow = true;
   g.add(badan, kepala);
+  const kaki = new THREE.Group();
+  for (const sx of [-1, 1]) {
+    const k = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.06, 0.5, 10), bahan.celana);
+    k.position.set(sx * 0.09, 0.25, 0); k.castShadow = true; kaki.add(k);
+  }
+  kaki.visible = false;
+  g.add(kaki);
   const n = label(teksNama, kelasNama, 1.62);
   const gel = label('', 'gelembung sembunyi', 2.25);
   g.add(n, gel);
-  return { grup: g, namaEl: n.element, gelembungEl: gel.element };
+  return { grup: g, kaki, namaEl: n.element, gelembungEl: gel.element };
 }
 
-function buatRuang(judul, warna, w, d) {
+function buatRuang(judul, warna, w, d, warnaAlas) {
   const g = new THREE.Group();
-  const alas = kotak(w, 0.04, d, new THREE.MeshStandardMaterial({ color: campur(warna, 0.82) }), 0, 0.02, 0);
+  const alas = kotak(w, 0.04, d, new THREE.MeshStandardMaterial({ color: warnaAlas || campur(warna, 0.82) }), 0, 0.02, 0);
   alas.castShadow = false;
   g.add(alas);
   const t = 0.08, h = 0.55;
@@ -297,7 +312,7 @@ const giliran = new Map();     // sesi -> { layar:Set, aktif:Set, orangAktif, te
 
 // Objek adegan
 let orang = new Map();   // nama -> { grup, namaEl, gelembungEl, rumah:{pos, layar} }
-let rk = null;           // { pcs:[...], kursiOperator, kursiPJ, kursiPengawas, layarPengawas, kursiIstirahat:[], tv65, tv43 }
+let rk = null;           // { pcs:[...], kursiOperator, kursiPJ, kursiPengawas, layarPengawas, tempatIstirahat:[], tv65, tv43 }
 let mejaManager = null, mejaBos = null, orangManager = null, orangBos = null;
 let warnaDivisi = new Map();
 let tandaTim = '';
@@ -308,22 +323,39 @@ function divisiKePc(id) {
 }
 
 // ---------- Ruang kontrol ----------
+// Satu komputer desktop: monitor di atas meja, keyboard, dan CPU di bawah meja
+// dengan 3 kipas RGB. Kipas & bingkai monitor hanya menyala saat PC-nya aktif.
+const WARNA_KIPAS = ['#ff3cac', '#2bd2ff', '#ffd60a'];
 function buatPc(i) {
   const g = new THREE.Group();
   const casingMat = bahan.monitor.clone(); casingMat.emissive = new THREE.Color('#000000');
-  g.add(kotak(0.62, 0.4, 0.04, casingMat, 0, 1.15, -0.2));
-  g.add(kotak(0.05, 0.16, 0.05, bahan.kaki, 0, 0.86, -0.22));
+  g.add(kotak(0.66, 0.4, 0.04, casingMat, 0, 1.17, -0.15));
+  g.add(kotak(0.05, 0.2, 0.05, bahan.monitor, 0, 0.88, -0.18));
+  g.add(kotak(0.26, 0.02, 0.17, bahan.monitor, 0, 0.785, -0.17));
   const kv = buatKanvas(640, 400);
-  const layar = new THREE.Mesh(new THREE.PlaneGeometry(0.58, 0.36), new THREE.MeshBasicMaterial({ map: kv.tex, toneMapped: false }));
-  layar.position.set(0, 1.15, -0.178);
+  const layar = new THREE.Mesh(new THREE.PlaneGeometry(0.62, 0.36), new THREE.MeshBasicMaterial({ map: kv.tex, toneMapped: false }));
+  layar.position.set(0, 1.17, -0.128);
   g.add(layar);
-  g.add(kotak(0.45, 0.02, 0.15, bahan.monitor, 0, 0.79, 0.12)); // keyboard
-  g.add(kotak(0.18, 0.42, 0.42, bahan.monitor, 0.2, 0.21, -0.1)); // CPU desktop di bawah meja
+  g.add(kotak(0.86, 0.006, 0.34, bahan.alasMeja, 0, 0.778, 0.14)); // alas meja hitam
+  g.add(kotak(0.46, 0.02, 0.15, bahan.monitor, -0.05, 0.79, 0.14)); // keyboard
+  g.add(kotak(0.06, 0.025, 0.1, bahan.monitor, 0.3, 0.79, 0.15));   // mouse
+  // CPU di bawah meja, kipas menghadap depan
+  g.add(kotak(0.22, 0.48, 0.44, bahan.monitor, 0.24, 0.24, 0.0));
+  const kipasMat = WARNA_KIPAS.map(() => new THREE.MeshStandardMaterial({ color: '#3a3f47', emissive: '#000000' }));
+  kipasMat.forEach((m, k) => {
+    const cincin = new THREE.Mesh(new THREE.TorusGeometry(0.055, 0.013, 8, 24), m);
+    cincin.position.set(0.24, 0.38 - k * 0.13, 0.225);
+    g.add(cincin);
+  });
   const pc = { i, grup: g, kv, mode: 'mati' };
   pc.set = (mode) => {
     pc.mode = mode;
     casingMat.emissive.copy(mode === 'mati' ? new THREE.Color('#000000') : LAYAR_NYALA);
     casingMat.emissiveIntensity = mode === 'nyala' ? 0.5 : mode === 'redup' ? 0.12 : 0;
+    kipasMat.forEach((m, k) => {
+      if (mode === 'mati') { m.color.set('#3a3f47'); m.emissive.set('#000000'); }
+      else { m.color.set(WARNA_KIPAS[k]); m.emissive.set(WARNA_KIPAS[k]); m.emissiveIntensity = mode === 'nyala' ? 1.3 : 0.35; }
+    });
     gambarPc(i); gambarTv();
   };
   pc.jenis = 'pc';
@@ -365,9 +397,30 @@ function gambarTv() {
   salin(rk.tv43, [4, 5], 2);
 }
 
+function taruh(obj, x, y, z) { obj.position.set(x, y, z); gedung.add(obj); return obj; }
+
+// Setiap pembangun ruang: { w, d, bangun(x0, z0) } — x0/z0 = titik tengah ruang.
+function kursiKantor(x, z) {
+  const g = new THREE.Group();
+  g.add(kotak(0.5, 0.08, 0.5, bahan.kursiHitam, 0, 0.48, 0));
+  g.add(kotak(0.46, 0.55, 0.06, bahan.kursiHitam, 0, 0.82, 0.25));
+  g.add(kotak(0.05, 0.4, 0.05, bahan.kaki, 0, 0.25, 0));
+  g.add(kotak(0.6, 0.03, 0.06, bahan.kursiHitam, 0, 0.04, 0));
+  g.add(kotak(0.06, 0.03, 0.6, bahan.kursiHitam, 0, 0.04, 0));
+  g.position.set(x, 0, z);
+  gedung.add(g);
+}
+
+function mejaKayu(x, z, panjang) {
+  gedung.add(kotak(panjang, 0.05, 0.8, bahan.kayuMeja, x, 0.75, z));
+  for (const sx of [-1, 1]) for (const sz of [-1, 1])
+    gedung.add(kotak(0.07, 0.72, 0.07, bahan.kayuMeja, x + sx * (panjang / 2 - 0.06), 0.36, z + sz * 0.33));
+  gedung.add(kotak(panjang - 0.1, 0.06, 0.04, bahan.kayuMeja, x, 0.18, z - 0.33)); // palang bawah
+}
+
 function buatTv(lebar, tinggi, judul) {
   const g = new THREE.Group();
-  g.add(kotak(lebar + 0.06, tinggi + 0.06, 0.05, bahan.bezel, 0, 0, 0));
+  g.add(kotak(lebar + 0.05, tinggi + 0.05, 0.05, bahan.bezel, 0, 0, 0));
   const kv = buatKanvas(1280, Math.round(1280 * tinggi / lebar));
   const layar = new THREE.Mesh(new THREE.PlaneGeometry(lebar, tinggi), new THREE.MeshBasicMaterial({ map: kv.tex, toneMapped: false }));
   layar.position.z = 0.027;
@@ -378,105 +431,177 @@ function buatTv(lebar, tinggi, judul) {
   return { grup: g, kv };
 }
 
-function bangunRuangKontrol(cfg, x0, z0) {
-  const w = 7.2, d = 6.4;
-  const r = buatRuang(cfg.nama || 'Ruang Kontrol', '#0ea5e9', w, d);
-  r.position.set(x0, 0, z0);
-  gedung.add(r);
-  const lokal = (x, y, z) => new THREE.Vector3(x0 + x, y, z0 + z);
+// Ruang kontrol, meniru ruang kontrol asli: dinding jendela bertirai hijau mint,
+// TV 65" di tengah, TV 43" di kiri (berdiri di tiang), meja kayu panjang dengan
+// 6 PC berjajar, 2 kursi petugas, meja pengawas di belakang.
+function pembangunKontrol(cfg) {
+  const w = 13.5, d = 6.4;
+  return { w, d, bangun(x0, z0) {
+    taruh(buatRuang(cfg.nama || 'Ruang Kontrol', '#0ea5e9', w, d, '#f6f7f5'), x0, 0, z0);
+    const belakang = z0 - d / 2;
+    // dinding tinggi + jendela bertirai
+    gedung.add(kotak(w, 2.9, 0.1, bahan.dindingKontrol, x0, 1.45, belakang));
+    const lebarTirai = 9.0, nPanel = 8;
+    for (let k = 0; k < nPanel; k++) {
+      const pw = lebarTirai / nPanel;
+      gedung.add(kotak(pw + 0.02, 1.95, 0.05, k % 2 ? bahan.tirai1 : bahan.tirai2,
+        x0 - lebarTirai / 2 + pw * (k + 0.5), 1.72, belakang + 0.07 + (k % 2) * 0.03));
+    }
+    gedung.add(kotak(lebarTirai + 0.3, 0.04, 0.04, bahan.kaki, x0, 2.72, belakang + 0.1)); // rel tirai
+    gedung.add(kotak(1.0, 0.3, 0.24, bahan.putih, x0 - w / 2 + 0.9, 2.45, belakang + 0.18)); // AC
+    // rak jaringan di pojok kanan
+    gedung.add(kotak(0.6, 1.9, 0.6, bahan.monitor, x0 + w / 2 - 0.6, 0.95, belakang + 0.45));
 
-  // Dinding video + 2 TV (65" ≈ 1,44 × 0,81 m; 43" ≈ 0,95 × 0,53 m).
-  const zDinding = -d / 2 + 0.25;
-  const dv = kotak(4.4, 2.5, 0.1, bahan.dindingVideo, x0, 1.25, z0 + zDinding);
-  gedung.add(dv);
-  const tv65 = buatTv(1.44, 0.81, 'TV 65" · PC 1–4');
-  tv65.grup.position.copy(lokal(-0.85, 1.75, zDinding + 0.08));
-  const tv43 = buatTv(0.95, 0.534, 'TV 43" · PC 5–6');
-  tv43.grup.position.copy(lokal(1.3, 1.75, zDinding + 0.08));
-  gedung.add(tv65.grup, tv43.grup);
+    // TV 65" di tengah, TV 43" di kiri pada tiang
+    const tv65 = buatTv(1.44, 0.81, 'TV 65" · PC 1–4');
+    tv65.grup.position.set(x0, 1.95, belakang + 0.14);
+    const tv43 = buatTv(0.95, 0.534, 'TV 43" · PC 5–6');
+    tv43.grup.position.set(x0 - 2.55, 1.72, belakang + 0.55);
+    gedung.add(tv65.grup, tv43.grup);
+    gedung.add(kotak(0.06, 1.45, 0.06, bahan.monitor, x0 - 2.55, 0.73, belakang + 0.5));
+    gedung.add(kotak(0.55, 0.04, 0.45, bahan.monitor, x0 - 2.55, 0.02, belakang + 0.5));
 
-  // Meja konsol panjang dengan 6 komputer desktop.
-  const zKonsol = -d / 2 + 1.55, panjang = 4.8;
-  gedung.add(kotak(panjang, 0.06, 0.8, bahan.meja, x0, 0.75, z0 + zKonsol));
-  for (const sx of [-1, 1]) for (const sz of [-1, 1])
-    gedung.add(kotak(0.05, 0.72, 0.05, bahan.kaki, x0 + sx * (panjang / 2 - 0.08), 0.36, z0 + zKonsol + sz * 0.32));
-  const pcs = [];
-  for (let i = 0; i < 6; i++) {
-    const pc = buatPc(i);
-    pc.grup.position.copy(lokal(-1.9 + i * 0.76, 0, zKonsol));
-    const t = label(`PC ${i + 1}`, 'papan-pc', 0);
-    t.position.set(0, 0.88, 0.32);
-    pc.grup.add(t);
-    gedung.add(pc.grup);
-    pcs.push(pc);
-  }
-  // 2 kursi operator: operator di depan PC 1–3, PJ di depan PC 4–6.
-  const kursi = (x) => {
-    gedung.add(kotak(0.5, 0.08, 0.5, bahan.kursi, x0 + x, 0.45, z0 + zKonsol + 0.75));
-    gedung.add(kotak(0.5, 0.5, 0.06, bahan.kursi, x0 + x, 0.75, z0 + zKonsol + 1.0));
-    return lokal(x, 0, zKonsol + 0.72);
-  };
-  const kursiOperator = kursi(-1.14), kursiPJ = kursi(1.14);
-
-  // Meja pengawas di belakang operator, menghadap layar yang sama.
-  const mp = buatMeja(1.4);
-  mp.grup.position.copy(lokal(0, 0, zKonsol + 2.5));
-  gedung.add(mp.grup);
-  const kursiPengawas = mp.kursi.clone().add(mp.grup.position);
-
-  return { pcs, tv65, tv43, kursiOperator, kursiPJ, kursiPengawas, layarPengawas: mp.layar, w, d };
+    // 3 meja kayu berjajar, 6 PC
+    const zMeja = belakang + 1.25, jarak = 1.25;
+    for (const mx of [-2.5, 0, 2.5]) mejaKayu(x0 + mx, zMeja, 2.5);
+    const pcs = [];
+    for (let i = 0; i < 6; i++) {
+      const pc = buatPc(i);
+      pc.grup.position.set(x0 + (i - 2.5) * jarak, 0, zMeja);
+      const t = label(`PC ${i + 1}`, 'papan-pc', 0);
+      t.position.set(0, 0.88, 0.32);
+      pc.grup.add(t);
+      gedung.add(pc.grup);
+      pcs.push(pc);
+    }
+    // 2 kursi petugas: operator (dekat PC 2–3), PJ (dekat PC 4–5)
+    const zKursi = zMeja + 0.75;
+    kursiKantor(x0 - 1.25, zKursi); kursiKantor(x0 + 1.25, zKursi);
+    const kursiOperator = new THREE.Vector3(x0 - 1.25, 0, zKursi - 0.03);
+    const kursiPJ = new THREE.Vector3(x0 + 1.25, 0, zKursi - 0.03);
+    // meja pengawas di belakang petugas
+    const mp = buatMeja(1.4);
+    mp.grup.position.set(x0, 0, z0 + d / 2 - 1.55);
+    gedung.add(mp.grup);
+    rk = { pcs, tv65, tv43, kursiOperator, kursiPJ,
+      kursiPengawas: mp.kursi.clone().add(mp.grup.position), layarPengawas: mp.layar, tempatIstirahat: [] };
+  } };
 }
 
-function bangunRuangIstirahat(judul, x0, z0) {
-  const w = 7.2, d = 4.4;
-  const r = buatRuang(judul, '#22c55e', w, d);
-  r.position.set(x0, 0, z0);
-  gedung.add(r);
-  const lokal = (x, y, z) => new THREE.Vector3(x0 + x, y, z0 + z);
-  const kursiIstirahat = [];
-  const sofa = (cx, cz, kursiN, putar) => {
-    const g = new THREE.Group();
-    const p = kursiN * 0.62;
-    g.add(kotak(p + 0.2, 0.38, 0.75, bahan.sofa, 0, 0.19, 0));
-    g.add(kotak(p + 0.2, 0.55, 0.18, bahan.sofa, 0, 0.55, -0.3));
-    for (const sx of [-1, 1]) g.add(kotak(0.12, 0.5, 0.75, bahan.sofa, sx * (p / 2 + 0.06), 0.3, 0));
-    for (let k = 0; k < kursiN; k++) g.add(kotak(0.56, 0.08, 0.55, bahan.bantal, -p / 2 + 0.31 + k * 0.62, 0.42, 0.05));
-    g.position.copy(lokal(cx, 0, cz)); g.rotation.y = putar;
-    gedung.add(g);
-    for (let k = 0; k < kursiN; k++) {
-      const v = new THREE.Vector3(-p / 2 + 0.31 + k * 0.62, -0.03, 0.08).applyAxisAngle(new THREE.Vector3(0, 1, 0), putar);
-      kursiIstirahat.push(v.add(g.position));
+function sofa(x, z, n, putar, tempat) {
+  const g = new THREE.Group();
+  const p = n * 0.62;
+  g.add(kotak(p + 0.2, 0.38, 0.75, bahan.sofa, 0, 0.19, 0));
+  g.add(kotak(p + 0.2, 0.55, 0.18, bahan.sofa, 0, 0.55, -0.3));
+  for (const sx of [-1, 1]) g.add(kotak(0.12, 0.5, 0.75, bahan.sofa, sx * (p / 2 + 0.06), 0.3, 0));
+  for (let k = 0; k < n; k++) g.add(kotak(0.56, 0.08, 0.55, bahan.bantal, -p / 2 + 0.31 + k * 0.62, 0.42, 0.05));
+  g.position.set(x, 0, z); g.rotation.y = putar;
+  gedung.add(g);
+  for (let k = 0; k < n; k++) {
+    const v = new THREE.Vector3(-p / 2 + 0.31 + k * 0.62, -0.03, 0.08).applyAxisAngle(new THREE.Vector3(0, 1, 0), putar);
+    tempat.push({ pos: v.add(g.position), berdiri: false, ruang: 'istirahat' });
+  }
+}
+function tanaman(x, z) {
+  gedung.add(kotak(0.3, 0.35, 0.3, bahan.pot, x, 0.18, z));
+  const daun = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 12), bahan.daun);
+  daun.position.set(x, 0.62, z); daun.castShadow = true;
+  gedung.add(daun);
+}
+
+const tempatIstirahat = [], tempatRekreasi = [];
+
+function pembangunIstirahat(judul) {
+  const w = 6.6, d = 4.4;
+  return { w, d, bangun(x0, z0) {
+    taruh(buatRuang(judul, '#22c55e', w, d), x0, 0, z0);
+    sofa(x0 - 0.6, z0 - 1.45, 3, 0, tempatIstirahat);
+    sofa(x0 + 2.45, z0 + 0.05, 3, -Math.PI / 2, tempatIstirahat);
+    gedung.add(kotak(1.1, 0.06, 0.6, bahan.kayu, x0 - 0.5, 0.4, z0 - 0.3));
+    gedung.add(kotak(0.9, 0.36, 0.4, bahan.kayu, x0 - 0.5, 0.19, z0 - 0.3));
+    gedung.add(kotak(0.08, 0.1, 0.08, bahan.pot, x0 - 0.7, 0.48, z0 - 0.3));
+    for (const bx of [-2.0, -0.6]) {
+      const bb = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), bahan.bantal);
+      bb.scale.set(1, 0.6, 1); bb.position.set(x0 + bx, 0.2, z0 + 1.1); bb.castShadow = true;
+      gedung.add(bb);
+      tempatIstirahat.push({ pos: new THREE.Vector3(x0 + bx, -0.18, z0 + 1.1), berdiri: false, ruang: 'istirahat' });
     }
-  };
-  sofa(0.9, -1.45, 3, 0);            // sofa belakang, 3 kursi
-  sofa(3.0, 0.05, 3, -Math.PI / 2);  // sofa samping kanan, 3 kursi
-  // meja kopi
-  gedung.add(kotak(1.1, 0.06, 0.6, bahan.kayu, x0 + 1.0, 0.4, z0 - 0.35));
-  gedung.add(kotak(0.9, 0.36, 0.4, bahan.kayu, x0 + 1.0, 0.19, z0 - 0.35));
-  gedung.add(kotak(0.08, 0.1, 0.08, bahan.pot, x0 + 0.8, 0.48, z0 - 0.35));
-  // pingpong (rekreasi)
-  gedung.add(kotak(1.6, 0.05, 0.9, bahan.hijauMeja, x0 - 2.1, 0.76, z0 - 0.2));
-  gedung.add(kotak(0.02, 0.12, 0.9, bahan.bantal, x0 - 2.1, 0.84, z0 - 0.2));
-  for (const sx of [-1, 1]) for (const sz of [-1, 1])
-    gedung.add(kotak(0.05, 0.74, 0.05, bahan.kaki, x0 - 2.1 + sx * 0.72, 0.37, z0 - 0.2 + sz * 0.38));
-  // tanaman
-  for (const [px, pz] of [[-3.2, -1.8], [3.2, -1.85]]) {
-    gedung.add(kotak(0.3, 0.35, 0.3, bahan.pot, x0 + px, 0.18, z0 + pz));
-    const daun = new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 12), bahan.daun);
-    daun.position.copy(lokal(px, 0.62, pz)); daun.castShadow = true;
-    gedung.add(daun);
-  }
-  // kursi santai (bean bag) di depan
-  for (const bx of [-0.5, 0.6]) {
-    const bb = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 12), bahan.bantal);
-    bb.scale.set(1, 0.6, 1); bb.position.copy(lokal(bx, 0.2, 1.1)); bb.castShadow = true;
-    gedung.add(bb);
-    kursiIstirahat.push(lokal(bx, -0.18, 1.1));
-  }
-  return { kursiIstirahat, w, d };
+    tanaman(x0 - w / 2 + 0.4, z0 - d / 2 + 0.4);
+  } };
+}
+
+function pembangunRekreasi(judul) {
+  const w = 6.2, d = 4.4;
+  return { w, d, bangun(x0, z0) {
+    taruh(buatRuang(judul, '#f59e0b', w, d), x0, 0, z0);
+    // meja pingpong + 2 pemain berdiri di ujungnya
+    const px = x0 - 0.6, pz = z0 - 0.1;
+    gedung.add(kotak(1.6, 0.05, 0.9, bahan.hijauMeja, px, 0.76, pz));
+    gedung.add(kotak(0.02, 0.12, 0.9, bahan.bantal, px, 0.84, pz));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])
+      gedung.add(kotak(0.05, 0.74, 0.05, bahan.kaki, px + sx * 0.72, 0.37, pz + sz * 0.38));
+    tempatRekreasi.push({ pos: new THREE.Vector3(px - 1.15, 0, pz), berdiri: true, ruang: 'rekreasi' });
+    tempatRekreasi.push({ pos: new THREE.Vector3(px + 1.15, 0, pz), berdiri: true, ruang: 'rekreasi' });
+    // bangku penonton
+    gedung.add(kotak(1.4, 0.08, 0.45, bahan.kayu, x0 + 2.0, 0.42, z0 + 1.3));
+    for (const sx of [-1, 1]) gedung.add(kotak(0.08, 0.4, 0.4, bahan.kayu, x0 + 2.0 + sx * 0.6, 0.2, z0 + 1.3));
+    for (const bx of [-0.35, 0.35]) tempatRekreasi.push({ pos: new THREE.Vector3(x0 + 2.0 + bx, 0, z0 + 1.32), berdiri: false, ruang: 'rekreasi' });
+    // mesin minuman
+    gedung.add(kotak(0.8, 1.7, 0.6, new THREE.MeshStandardMaterial({ color: '#ef4444', roughness: 0.5 }), x0 + 2.4, 0.85, z0 - d / 2 + 0.5));
+    gedung.add(kotak(0.55, 0.9, 0.02, bahan.putih, x0 + 2.4, 1.05, z0 - d / 2 + 0.81));
+    tanaman(x0 - w / 2 + 0.4, z0 - d / 2 + 0.4);
+    tanaman(x0 + w / 2 - 0.4, z0 + d / 2 - 0.5);
+  } };
+}
+
+function pembangunDivisi(d, pengawas) {
+  const JX = 2.3, JZ = 2.7;
+  const staf = (d.karyawan || []).filter((k) => k.nama !== pengawas);
+  const n = Math.max(staf.length, 1);
+  const kol = Math.min(3, n), bar = Math.ceil(n / 3);
+  const w = kol * JX + 1.2, dd = bar * JZ + 1.0;
+  const warna = d.warna || '#94a3b8';
+  warnaDivisi.set(d.id, warna);
+  return { w, d: dd, bangun(cx, cz) {
+    taruh(buatRuang(d.nama, warna, w, dd), cx, 0, cz);
+    staf.forEach((k, j) => {
+      const c = j % 3, b = Math.floor(j / 3);
+      const kolBaris = Math.min(kol, staf.length - b * 3);
+      const m = buatMeja();
+      m.grup.position.set(cx + (c - (kolBaris - 1) / 2) * JX, 0, cz - dd / 2 + 0.9 + b * JZ);
+      gedung.add(m.grup);
+      const o = buatOrang(k.nama, campur(warna, 0.15).getStyle());
+      o.rumah = { pos: m.kursi.clone().add(m.grup.position), layar: m.layar };
+      o.divisi = d.id;
+      gedung.add(o.grup);
+      orang.set(k.nama, o);
+    });
+  } };
+}
+
+function pembangunBos(t) {
+  const w = 7.4, d = 3.6;
+  return { w, d, bangun(x0, z0) {
+    taruh(buatRuang('Ruang Bos', '#64748b', w, d), x0, 0, z0);
+    const bos = t.bos || { nama: 'Bos' };
+    mejaBos = buatMeja(1.96);
+    mejaBos.grup.position.set(x0 - 1.6, 0, z0 - 0.9);
+    orangBos = buatOrang(`${bos.nama} (kamu)`, '#334155', 'nama bos');
+    orangBos.grup.position.copy(mejaBos.kursi).add(mejaBos.grup.position);
+    const man = t.manager || { nama: 'Manager' };
+    mejaManager = buatMeja();
+    mejaManager.grup.position.set(x0 + 1.9, 0, z0 - 0.9);
+    orangManager = buatOrang(`${man.nama} · ${man.peran || 'Manager'}`, '#8b5cf6');
+    orangManager.kursi = mejaManager.kursi.clone().add(mejaManager.grup.position);
+    orangManager.grup.position.copy(orangManager.kursi);
+    gedung.add(mejaBos.grup, orangBos.grup, mejaManager.grup, orangManager.grup);
+  } };
 }
 
 // ---------- Bangun kantor dari tim.json ----------
+// Susunan ruang diatur di tim.json -> "tataLetak": daftar baris (belakang ke depan),
+// tiap baris berisi id ruang: id divisi, "kontrol", "istirahat", "rekreasi", "bos".
+// Ruang yang tidak disebut ditaruh di baris tambahan, jadi tidak ada yang hilang.
 function bangunKantor(t) {
   const tanda = JSON.stringify(t);
   if (tanda === tandaTim) return;
@@ -486,58 +611,44 @@ function bangunKantor(t) {
   gedung = new THREE.Group();
   adegan.add(gedung);
   orang = new Map(); warnaDivisi = new Map(); rk = null;
+  tempatIstirahat.length = 0; tempatRekreasi.length = 0;
 
   const cfgRk = t.ruangKontrol || null;
   const pengawas = cfgRk && cfgRk.pengawas;
-  const JX = 2.3, JZ = 2.7;
-  const divisi = t.divisi || [];
-  const perBaris = divisi.length > 3 ? 2 : Math.max(divisi.length, 1);
-  let x = 0, z = 0, tinggiBaris = 0, lebarDiv = 0;
-  const posisi = [];
-  divisi.forEach((d, i) => {
-    const n = Math.max((d.karyawan || []).filter((k) => k.nama !== pengawas).length, 1);
-    const kol = Math.min(3, n), bar = Math.ceil(n / 3);
-    const w = kol * JX + 1.2, dd = bar * JZ + 1.0;
-    if (i > 0 && i % perBaris === 0) { z += tinggiBaris + 2.4; x = 0; tinggiBaris = 0; }
-    posisi.push({ d, w, dd, kol, x, z });
-    x += w + 1.4; lebarDiv = Math.max(lebarDiv, x - 1.4); tinggiBaris = Math.max(tinggiBaris, dd);
-  });
-  const dalamDiv = z + tinggiBaris;
-  const lebarKanan = cfgRk ? 7.2 + 1.8 : 0;
-  const lebarTotal = lebarDiv + lebarKanan;
-  const kiri = -lebarTotal / 2;
+  const ruang = new Map();
+  for (const d of t.divisi || []) ruang.set(d.id, pembangunDivisi(d, pengawas));
+  if (cfgRk) {
+    ruang.set('kontrol', pembangunKontrol(cfgRk));
+    ruang.set('istirahat', pembangunIstirahat(cfgRk.ruangIstirahat || 'Ruang Istirahat'));
+    ruang.set('rekreasi', pembangunRekreasi(cfgRk.ruangRekreasi || 'Ruang Rekreasi'));
+  }
+  ruang.set('bos', pembangunBos(t));
 
-  for (const p of posisi) {
-    const warna = p.d.warna || '#94a3b8';
-    warnaDivisi.set(p.d.id, warna);
-    const cx = kiri + p.x + p.w / 2, cz = p.z + p.dd / 2;
-    const r = buatRuang(p.d.nama, warna, p.w, p.dd);
-    r.position.set(cx, 0, cz);
-    gedung.add(r);
-    const staf = (p.d.karyawan || []).filter((k) => k.nama !== pengawas);
-    staf.forEach((k, j) => {
-      const c = j % 3, b = Math.floor(j / 3);
-      const kolBaris = Math.min(p.kol, staf.length - b * 3);
-      const m = buatMeja();
-      m.grup.position.set(cx + (c - (kolBaris - 1) / 2) * JX, 0, cz - p.dd / 2 + 0.9 + b * JZ);
-      gedung.add(m.grup);
-      const o = buatOrang(k.nama, campur(warna, 0.15).getStyle());
-      o.rumah = { pos: m.kursi.clone().add(m.grup.position), layar: m.layar };
-      o.divisi = p.d.id;
-      gedung.add(o.grup);
-      orang.set(k.nama, o);
-    });
+  const baris = [], dipakai = new Set();
+  for (const row of Array.isArray(t.tataLetak) ? t.tataLetak : []) {
+    const r = (Array.isArray(row) ? row : []).filter((id) => ruang.has(id) && !dipakai.has(id));
+    r.forEach((id) => dipakai.add(id));
+    if (r.length) baris.push(r);
+  }
+  const sisa = [...ruang.keys()].filter((id) => !dipakai.has(id) && id !== 'bos');
+  for (let i = 0; i < sisa.length; i += 3) baris.push(sisa.slice(i, i + 3));
+  if (!dipakai.has('bos')) baris.push(['bos']);
+
+  const JARAK_X = 1.6, JARAK_Z = 2.3;
+  let z = 0;
+  for (const row of baris) {
+    const rs = row.map((id) => ruang.get(id));
+    const lebar = rs.reduce((a, r) => a + r.w, 0) + JARAK_X * (rs.length - 1);
+    const dalam = Math.max(...rs.map((r) => r.d));
+    let x = -lebar / 2;
+    for (const r of rs) { r.bangun(x + r.w / 2, z + r.d / 2); x += r.w + JARAK_X; }
+    z += dalam + JARAK_Z;
   }
 
-  let bawah = dalamDiv;
-  if (cfgRk) {
-    const xk = kiri + lebarDiv + 1.8 + 3.6;
-    rk = bangunRuangKontrol(cfgRk, xk, 3.2);
-    const ri = bangunRuangIstirahat(cfgRk.ruangIstirahat || 'Ruang Istirahat', xk, 3.2 + 3.2 + 1.8 + 2.2);
-    rk.kursiIstirahat = ri.kursiIstirahat;
-    bawah = Math.max(bawah, 3.2 + 3.2 + 1.8 + 4.4);
+  if (cfgRk && rk) {
+    rk.tempatIstirahat = [...tempatRekreasi.filter((t) => t.berdiri), ...tempatIstirahat, ...tempatRekreasi.filter((t) => !t.berdiri)];
     if (pengawas) {
-      const d = divisi.find((x) => (x.karyawan || []).some((k) => k.nama === pengawas));
+      const d = (t.divisi || []).find((x) => (x.karyawan || []).some((k) => k.nama === pengawas));
       const o = buatOrang(`${pengawas} · Pengawas`, campur((d && d.warna) || '#0ea5e9', 0.15).getStyle());
       o.rumah = { pos: rk.kursiPengawas, layar: rk.layarPengawas };
       o.divisi = d && d.id;
@@ -546,25 +657,12 @@ function bangunKantor(t) {
     }
   }
 
-  // Ruang bos & manager di depan, di tengah.
-  const bz = bawah + 1.4 + 1.8;
-  const rb = buatRuang('Ruang Bos', '#64748b', 7.4, 3.6);
-  rb.position.set(0, 0, bz);
-  gedung.add(rb);
-  const bos = t.bos || { nama: 'Bos' };
-  mejaBos = buatMeja(1.96);
-  mejaBos.grup.position.set(-1.6, 0, bz - 0.9);
-  orangBos = buatOrang(`${bos.nama} (kamu)`, '#334155', 'nama bos');
-  orangBos.grup.position.copy(mejaBos.kursi).add(mejaBos.grup.position);
-  const man = t.manager || { nama: 'Manager' };
-  mejaManager = buatMeja();
-  mejaManager.grup.position.set(1.9, 0, bz - 0.9);
-  orangManager = buatOrang(`${man.nama} · ${man.peran || 'Manager'}`, '#8b5cf6');
-  orangManager.kursi = mejaManager.kursi.clone().add(mejaManager.grup.position);
-  orangManager.grup.position.copy(orangManager.kursi);
-  gedung.add(mejaBos.grup, orangBos.grup, mejaManager.grup, orangManager.grup);
+  // Pusatkan kantor di titik asal supaya bayangan & kamera pas.
+  const kotakSemua = new THREE.Box3().setFromObject(gedung);
+  const pusat = kotakSemua.getCenter(new THREE.Vector3());
+  gedung.position.set(-pusat.x, 0, -pusat.z);
+  gedung.updateMatrixWorld(true);
 
-  // Kamera: tampilkan seluruh kantor.
   pasKamera();
   aturTempat();
   if (rk) { for (let i = 0; i < 6; i++) gambarPc(i); gambarTv(); }
@@ -595,17 +693,21 @@ function aturTempat() {
   const modeShift = !!(cfg && rk && tugasKini && (tugasKini.pj || tugasKini.operator));
   let slot = 0;
   for (const [nama, o] of orang) {
-    let pos = o.rumah.pos, peran = '', di = 'rumah';
+    let pos = o.rumah.pos, peran = '', di = 'rumah', berdiri = false;
     if (cfg && nama === cfg.pengawas) peran = '';
     else if (modeShift && (cfg.operator || []).includes(nama)) {
       if (nama === tugasKini.operator) { pos = rk.kursiOperator; peran = 'Operator'; di = 'kontrol'; }
       else if (nama === tugasKini.pj) { pos = rk.kursiPJ; peran = 'PJ'; di = 'kontrol'; }
-      else { pos = rk.kursiIstirahat[slot % rk.kursiIstirahat.length]; slot++; di = 'istirahat'; }
+      else if (rk.tempatIstirahat.length) {
+        const t = rk.tempatIstirahat[slot % rk.tempatIstirahat.length]; slot++;
+        pos = t.pos; berdiri = t.berdiri; di = t.ruang;
+      }
     }
     o.grup.position.copy(pos);
+    o.kaki.visible = berdiri;
     o.di = di;
     if (!(cfg && nama === cfg.pengawas)) o.namaEl.textContent = peran ? `${nama} · ${peran}` : nama;
-    o.namaEl.classList.toggle('istirahat', di === 'istirahat');
+    o.namaEl.classList.toggle('istirahat', di === 'istirahat' || di === 'rekreasi');
   }
 }
 

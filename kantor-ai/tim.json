@@ -67,6 +67,12 @@
       { "nama": "Malam", "mulai": "23:00", "selesai": "07:00" }
     ],
     "jadwal": "jadwal.xlsx",
-    "ruangIstirahat": "Ruang Istirahat & Rekreasi"
-  }
+    "ruangIstirahat": "Ruang Istirahat",
+    "ruangRekreasi": "Ruang Rekreasi"
+  },
+  "tataLetak": [
+    ["kontrol", "riset"],
+    ["umum", "teknik", "istirahat"],
+    ["rekreasi", "pemasaran", "bos"]
+  ]
 }
