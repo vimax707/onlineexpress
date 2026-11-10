@@ -259,6 +259,7 @@ function buatOrang(teksNama, warna, kelasNama = 'nama') {
 
 function buatRuang(judul, warna, w, d, warnaAlas) {
   const g = new THREE.Group();
+  g.userData.ukuran = { w, d }; // dipakai peta jalan: dinding belakang, kiri, kanan; depan terbuka
   const alas = kotak(w, 0.04, d, new THREE.MeshStandardMaterial({ color: warnaAlas || campur(warna, 0.82) }), 0, 0.02, 0);
   alas.castShadow = false;
   g.add(alas);
@@ -495,7 +496,106 @@ function gambarTv() {
   salin(rk.tv43, [4, 5], 2);
 }
 
-function taruh(obj, x, y, z) { obj.position.set(x, y, z); gedung.add(obj); return obj; }
+function taruh(obj, x, y, z) {
+  obj.position.set(x, y, z); gedung.add(obj);
+  if (obj.userData.ukuran) { daftarRuang.push({ x, z, ...obj.userData.ukuran }); peta = null; }
+  return obj;
+}
+
+// ---------- Peta jalan: orang berjalan lewat pintu (sisi depan) dan lorong, tidak menembus dinding ----------
+const daftarRuang = [];
+let peta = null;
+const SEL = 0.25, JARAK_DINDING = 0.4;
+
+function bangunPeta() {
+  if (!daftarRuang.length) return null;
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const r of daftarRuang) {
+    x0 = Math.min(x0, r.x - r.w / 2); x1 = Math.max(x1, r.x + r.w / 2);
+    z0 = Math.min(z0, r.z - r.d / 2); z1 = Math.max(z1, r.z + r.d / 2);
+  }
+  x0 -= 4; x1 += 4; z0 -= 4; z1 += 4;
+  const nx = Math.ceil((x1 - x0) / SEL), nz = Math.ceil((z1 - z0) / SEL);
+  const blok = new Uint8Array(nx * nz);
+  const tandai = (ax, az, bx, bz) => {
+    const i0 = Math.max(0, Math.floor((Math.min(ax, bx) - JARAK_DINDING - x0) / SEL));
+    const i1 = Math.min(nx - 1, Math.ceil((Math.max(ax, bx) + JARAK_DINDING - x0) / SEL));
+    const j0 = Math.max(0, Math.floor((Math.min(az, bz) - JARAK_DINDING - z0) / SEL));
+    const j1 = Math.min(nz - 1, Math.ceil((Math.max(az, bz) + JARAK_DINDING - z0) / SEL));
+    const dx = bx - ax, dz = bz - az, L2 = dx * dx + dz * dz || 1;
+    for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) {
+      const px = x0 + (i + 0.5) * SEL, pz = z0 + (j + 0.5) * SEL;
+      const t = Math.max(0, Math.min(1, ((px - ax) * dx + (pz - az) * dz) / L2));
+      const ex = ax + t * dx - px, ez = az + t * dz - pz;
+      if (ex * ex + ez * ez < JARAK_DINDING * JARAK_DINDING) blok[j * nx + i] = 1;
+    }
+  };
+  for (const r of daftarRuang) {
+    const kiri = r.x - r.w / 2, kanan = r.x + r.w / 2, blk = r.z - r.d / 2, dpn = r.z + r.d / 2;
+    tandai(kiri, blk, kanan, blk);   // dinding belakang
+    tandai(kiri, blk, kiri, dpn);    // dinding kiri
+    tandai(kanan, blk, kanan, dpn);  // dinding kanan
+  }
+  return { x0, z0, nx, nz, blok };
+}
+
+function cariJalur(dari, ke) {
+  peta = peta || bangunPeta();
+  if (!peta) return [dari.clone(), ke.clone()];
+  const { x0, z0, nx, nz, blok } = peta;
+  const keSel = (v) => [Math.max(0, Math.min(nx - 1, Math.floor((v.x - x0) / SEL))), Math.max(0, Math.min(nz - 1, Math.floor((v.z - z0) / SEL)))];
+  const [si, sj] = keSel(dari), [gi, gj] = keSel(ke);
+  const awal = sj * nx + si, tujuan = gj * nx + gi;
+  const bebas = (k) => !blok[k] || k === awal || k === tujuan;
+  // A* 8 arah, tanpa memotong sudut dinding.
+  const n = nx * nz, g = new Float32Array(n).fill(Infinity), asal = new Int32Array(n).fill(-1), tutup = new Uint8Array(n);
+  const heap = []; // [f, k]
+  const dorong = (f, k) => { heap.push([f, k]); let c = heap.length - 1; while (c > 0) { const p = (c - 1) >> 1; if (heap[p][0] <= heap[c][0]) break; [heap[p], heap[c]] = [heap[c], heap[p]]; c = p; } };
+  const ambil = () => { const top = heap[0], akhir = heap.pop(); if (heap.length) { heap[0] = akhir; let c = 0; for (;;) { const l = 2 * c + 1, r = l + 1; let m = c; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === c) break; [heap[m], heap[c]] = [heap[c], heap[m]]; c = m; } } return top; };
+  const h = (k) => Math.hypot(k % nx - gi, Math.floor(k / nx) - gj);
+  g[awal] = 0; dorong(h(awal), awal);
+  let ketemu = false;
+  while (heap.length) {
+    const [, k] = ambil();
+    if (tutup[k]) continue; tutup[k] = 1;
+    if (k === tujuan) { ketemu = true; break; }
+    const i = k % nx, j = Math.floor(k / nx);
+    for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
+      if (!di && !dj) continue;
+      const a = i + di, b = j + dj;
+      if (a < 0 || b < 0 || a >= nx || b >= nz) continue;
+      const m = b * nx + a;
+      if (!bebas(m)) continue;
+      if (di && dj && (!bebas(j * nx + a) || !bebas(b * nx + i))) continue;
+      const ng = g[k] + (di && dj ? Math.SQRT2 : 1);
+      if (ng < g[m]) { g[m] = ng; asal[m] = k; dorong(ng + h(m), m); }
+    }
+  }
+  if (!ketemu) return [dari.clone(), ke.clone()];
+  const sel = [];
+  for (let k = tujuan; k !== -1; k = asal[k]) sel.push(k);
+  sel.reverse();
+  const titik = sel.map((k) => new THREE.Vector3(x0 + (k % nx + 0.5) * SEL, 0, z0 + (Math.floor(k / nx) + 0.5) * SEL));
+  titik[0] = dari.clone(); titik[titik.length - 1] = ke.clone();
+  // Rapikan: ambil titik terjauh yang masih terlihat lurus tanpa melewati dinding.
+  const terlihat = (a, b) => {
+    const langkah = Math.ceil(a.distanceTo(b) / (SEL * 0.4));
+    for (let s = 1; s < langkah; s++) {
+      const x = a.x + (b.x - a.x) * s / langkah, z = a.z + (b.z - a.z) * s / langkah;
+      const [i, j] = keSel({ x, z }); const k = j * nx + i;
+      if (!bebas(k)) return false;
+    }
+    return true;
+  };
+  const hasil = [titik[0]];
+  let k = 0;
+  while (k < titik.length - 1) {
+    let jauh = k + 1;
+    for (let m = titik.length - 1; m > k + 1; m--) if (terlihat(titik[k], titik[m])) { jauh = m; break; }
+    hasil.push(titik[jauh]); k = jauh;
+  }
+  return hasil;
+}
 
 // Setiap pembangun ruang: { w, d, bangun(x0, z0) } — x0/z0 = titik tengah ruang.
 function kursiKantor(x, z) {
@@ -712,7 +812,8 @@ function bangunKantor(t) {
   gedung = new THREE.Group();
   adegan.add(gedung);
   orang = new Map(); warnaDivisi = new Map(); rk = null;
-  antrean.length = 0; langkahKini = null;
+  antrean.length = 0; langkahKini = null; alurMenunggu = null;
+  daftarRuang.length = 0; peta = null;
   tempatIstirahat.length = 0; tempatRekreasi.length = 0;
 
   const cfgRk = t.ruangKontrol || null;
@@ -915,11 +1016,18 @@ function perbaruiShift() {
 // Semua isi gelembung berasal dari laporan asli yang dibuat server.
 const antrean = [];
 let langkahKini = null;
-const KECEPATAN = 3.2; // meter per detik
+let alurMenunggu = null;   // alur berikutnya (hanya yang terbaru disimpan)
+const KECEPATAN = 2.0;      // meter per detik, orang biasa
+const KECEPATAN_MAYA = 1.1; // Maya berjalan lebih pelan
 
-function jalankanLangkah(daftar) { antrean.push(...daftar); if (!langkahKini) lanjutLangkah(performance.now()); }
+function jalankanLangkah(daftar) {
+  if (langkahKini || antrean.length) { alurMenunggu = daftar; return; }
+  antrean.push(...daftar);
+  lanjutLangkah(performance.now());
+}
 function lanjutLangkah(t) {
   langkahKini = antrean.shift() || null;
+  if (!langkahKini && alurMenunggu) { antrean.push(...alurMenunggu); alurMenunggu = null; langkahKini = antrean.shift() || null; }
   if (!langkahKini) return;
   langkahKini.mulai = t;
   if (langkahKini.jenis === 'aksi') { langkahKini.f(); lanjutLangkah(t); return; }
@@ -927,9 +1035,11 @@ function lanjutLangkah(t) {
     const o = langkahKini.o;
     const ke = typeof langkahKini.ke === 'function' ? langkahKini.ke() : langkahKini.ke;
     if (!o || !ke) { lanjutLangkah(t); return; }
-    langkahKini.dari = o.grup.position.clone();
-    langkahKini.keV = ke.clone();
-    langkahKini.durasi = Math.max(700, langkahKini.dari.distanceTo(ke) / KECEPATAN * 1000);
+    const titik = cariJalur(o.grup.position, ke);
+    const kum = [0];
+    for (let n = 1; n < titik.length; n++) kum.push(kum[n - 1] + titik[n - 1].distanceTo(titik[n]));
+    Object.assign(langkahKini, { titik, kum, total: kum[kum.length - 1] });
+    langkahKini.durasi = Math.max(700, langkahKini.total / (langkahKini.kecepatan || KECEPATAN) * 1000);
     o.sedangJalan = true; o.kaki.visible = true;
   }
 }
@@ -939,8 +1049,12 @@ function majukanLangkah(t) {
   if (l.jenis === 'tunggu') { if (t - l.mulai >= l.ms) lanjutLangkah(t); return; }
   if (l.jenis === 'jalan') {
     const k = Math.min(1, (t - l.mulai) / l.durasi);
-    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-    l.o.grup.position.lerpVectors(l.dari, l.keV, e);
+    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2; // pelan di awal & akhir
+    const jarak = e * l.total;
+    let n = 1;
+    while (n < l.kum.length - 1 && l.kum[n] < jarak) n++;
+    const seg = l.kum[n] - l.kum[n - 1] || 1;
+    l.o.grup.position.lerpVectors(l.titik[n - 1], l.titik[n], Math.min(1, (jarak - l.kum[n - 1]) / seg));
     if (k >= 1) {
       if (l.pulang) { l.o.sedangJalan = false; l.o.grup.position.copy(l.o.tempat); l.o.kaki.visible = !!l.o.berdiri; }
       lanjutLangkah(t);
@@ -949,13 +1063,15 @@ function majukanLangkah(t) {
 }
 const aksiL = (f) => ({ jenis: 'aksi', f });
 const tunggu = (ms) => ({ jenis: 'tunggu', ms });
-const jalanKe = (o, ke) => ({ jenis: 'jalan', o, ke });
-const pulang = (o) => ({ jenis: 'jalan', o, ke: () => o && o.tempat, pulang: true });
+const jalanKe = (o, ke, kecepatan) => ({ jenis: 'jalan', o, ke, kecepatan });
+const pulang = (o, kecepatan) => ({ jenis: 'jalan', o, ke: () => o && o.tempat, pulang: true, kecepatan });
 const disamping = (o, dx, dz) => () => o && o.tempat && o.tempat.clone().add(new THREE.Vector3(dx, 0, dz));
 
 function ringkasKontrol(lap) {
   const k = lap.kontrol || { jumlah: 0, perOrang: {}, luar: 0 };
-  const shift = lap.petugas ? `Shift ${lap.petugas.shift}` : 'Ruang kontrol';
+  const p = lap.petugas || tugasKini;
+  const shift = p ? `Shift ${p.shift}` : 'Ruang kontrol';
+  if (!lap.kontrol) return `${shift}: ${lap.ringkas}`;
   if (!k.jumlah) return `${shift}: tidak ada aksi di ruang kontrol`;
   const siapa = Object.entries(k.perOrang).map(([n, j]) => `${n} ${j}`).join(', ');
   return `${shift}: ${k.jumlah} aksi (${siapa})` + (k.luar ? ` · ⚠ ${k.luar} luar folder` : '');
@@ -966,7 +1082,10 @@ function alurLaporan(lap) {
   const maya = cfg && cfg.pengawas ? orang.get(cfg.pengawas) : null;
   const langkah = [];
   // 1) PJ (atau operator bila PJ kosong) melapor ke Maya — hanya petugas yang memang sedang di ruang kontrol.
-  const namaPJ = lap.petugas && (lap.petugas.pj || lap.petugas.operator);
+  // PJ selalu melapor lebih dulu. Data petugas dari laporan; kalau server versi lama
+  // tidak mengirimnya, pakai shift yang sedang berjalan.
+  const petugas = lap.petugas || tugasKini;
+  const namaPJ = petugas && (petugas.pj || petugas.operator);
   const pj = namaPJ ? orang.get(namaPJ) : null;
   if (maya && pj && pj.di === 'kontrol') {
     langkah.push(
@@ -983,9 +1102,9 @@ function alurLaporan(lap) {
     langkah.push(
       aksiL(() => {
         if (maya.rumah) { layarSebelum = maya.rumah.layar; layarSebelum.set('nyala'); }
-        gelembung(maya, 'menyusun laporan pengawasan…');
+        gelembung(maya, pj && pj.di === 'kontrol' ? `menerima laporan ${namaPJ}, menyusun laporan pengawasan…` : 'menyusun laporan pengawasan…');
       }),
-      tunggu(2500),
+      tunggu(4500),
       aksiL(() => {
         if (layarSebelum) {
           let dipakai = false;
@@ -994,11 +1113,11 @@ function alurLaporan(lap) {
         }
         gelembung(maya, 'menyerahkan laporan ke ' + ((tim.manager && tim.manager.nama) || 'Manager'));
       }),
-      jalanKe(maya, disamping(orangManager, -0.85, 0.2)),
+      jalanKe(maya, disamping(orangManager, -0.85, 0.2), KECEPATAN_MAYA),
       aksiL(() => gelembung(maya, `laporan: ${lap.baris.length} karyawan, ${lap.luar.length ? '⚠ ' + lap.luar.length + ' luar folder' : 'tanpa aksi luar'}`, lap.luar.length)),
       tunggu(3000),
       aksiL(() => gelembung(maya, '')),
-      pulang(maya));
+      pulang(maya, KECEPATAN_MAYA));
   }
   // 3) Ena melapor ke Bos (seperti sebelumnya).
   if (orangManager && orangBos) {
@@ -1153,7 +1272,8 @@ function putar(t) {
 }
 
 // Untuk pengujian/penyesuaian kamera dari konsol browser.
-window.__kantor = { kamera, kontrol, ruangKontrol: () => rk, pasKamera };
+window.__kantor = { kamera, kontrol, ruangKontrol: () => rk, pasKamera, ruangan: () => daftarRuang,
+  posisi: (n) => { const o = n === 'Ena' ? orangManager : orang.get(n); return o ? o.grup.position.clone() : null; } };
 
 // Tombol "Putar ulang": menjalankan lagi alur laporan TERAKHIR yang asli (tidak membuat laporan baru).
 document.getElementById('putar-laporan').addEventListener('click', () => {

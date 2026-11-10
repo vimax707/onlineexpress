@@ -1,7 +1,7 @@
 # Rangkuman Kantor AI: Sriwijaya Andalan Perkasa
 
 Catatan ini untuk melanjutkan pekerjaan: apa yang sudah dibuat, cara menjalankannya,
-dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 10 November 2026 (PJ duduk di kiri, alur laporan PJ → Maya → Ena → Bos).
+dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 10 November 2026 (PJ selalu melapor dulu, Maya lebih pelan, berjalan lewat lorong).
 
 ## Apa ini
 
@@ -94,16 +94,27 @@ Edit `kantor-ai/tim.json` lalu simpan. Server memuat ulang file ini sendiri, tan
 ## Alur laporan (setiap kali Claude selesai menjawab)
 
 Dipicu oleh event `Stop` yang asli. Isi setiap gelembung berasal dari laporan yang dibuat server.
-1. **PJ shift** berdiri dari kursinya, berjalan ke meja **Maya**, dan melapor bagian ruang kontrol:
+1. **PJ shift selalu melapor lebih dulu**: berdiri, berjalan ke meja **Maya**, dan melapor bagian ruang kontrol:
    *"lapor: Shift Malam: 2 aksi (Ayu 1, Wiwid 1) · ⚠ 1 luar folder"*. Lalu kembali ke kursinya.
    Kalau PJ kosong di jadwal, operator yang melapor. Kalau tidak ada petugas di ruang kontrol, langkah ini dilewati.
-2. **Maya** menyalakan komputernya dan *"menyusun laporan pengawasan…"*, lalu berjalan ke **Ena**
-   menyerahkan laporan (*"laporan: 3 karyawan, ⚠ 1 luar folder"*) dan kembali.
+   Siapa PJ diambil dari laporan; kalau server versi lama tidak mengirimnya, dari shift yang sedang berjalan.
+2. **Maya** baru mulai setelah menerima laporan PJ: komputernya menyala, *"menerima laporan Wiwid, menyusun
+   laporan pengawasan…"* (4,5 detik), lalu berjalan **pelan** (1,1 m/detik) ke **Ena**, menyerahkan laporan
+   (*"laporan: 3 karyawan, ⚠ 1 luar folder"*), dan kembali.
 3. **Ena** berjalan ke **Bos** dan melaporkan ringkasan lengkap, lalu kembali.
 
-Satu alur memakan sekitar 25 detik. Kalau Claude selesai menjawab lagi sebelum alur selesai, alur berikutnya
-menunggu giliran. Tombol **▶ Putar ulang** di panel Laporan Manager menjalankan lagi alur laporan **terakhir**
-(tidak membuat laporan baru). Kode: `kantor.js`, fungsi `alurLaporan`; kecepatan jalan `KECEPATAN`.
+**Tidak menembus ruangan:** setiap orang mencari jalan di peta lantai (petak 25 cm). Dinding belakang, kiri,
+dan kanan tiap ruangan tidak bisa dilewati (jarak aman 40 cm); sisi depan ruangan adalah pintu. Jadi orang
+keluar lewat depan, menyusuri lorong di antara ruangan, lalu masuk ke ruangan tujuan.
+Diuji: jarak terdekat Maya ke dinding mana pun selama berjalan 0,47 m.
+
+Satu alur memakan sekitar 60 detik (Maya ke Ena dan kembali paling lama). Kalau Claude selesai menjawab lagi
+sebelum alur selesai, hanya alur **terbaru** yang menunggu giliran (yang lebih lama dilewati supaya tidak menumpuk). Tombol **▶ Putar ulang** di panel Laporan Manager menjalankan lagi alur laporan **terakhir**
+(tidak membuat laporan baru). Kode: `kantor.js`, fungsi `alurLaporan`; kecepatan jalan `KECEPATAN` (2,0 m/detik)
+dan `KECEPATAN_MAYA` (1,1 m/detik); peta jalan `cariJalur`, jarak aman dinding `JARAK_DINDING`.
+
+**Setelah `git pull`, tutup jendela hitam kantor lalu jalankan lagi `jalankan.bat`.** Kalau server lama
+masih berjalan, halaman memakai kode baru tetapi server memakai kode lama.
 
 ## Tata letak ruangan
 
@@ -235,6 +246,8 @@ Perubahan `server.js`, `pemetaan.js`, atau `hook.js` butuh restart server (tutup
 10. Riset digabung ke Teknik ("Teknik & Riset", bengkel elektro untuk Bayu & Putri), Ruang Kontrol
     melebar mengambil tempat Riset, PC 4 menampilkan semua aktivitas
 11. PJ duduk di kiri; alur laporan berantai PJ → Maya → Ena → Bos; tombol Putar ulang
+12. PJ selalu melapor dulu (juga dengan server lama), Maya berjalan lebih pelan, semua orang berjalan
+    lewat pintu dan lorong (tidak menembus dinding)
 
 Semua ada di branch `claude/practical-gauss-ngei1a` di GitHub `vimax707/onlineexpress`.
 
