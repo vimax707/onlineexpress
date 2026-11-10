@@ -85,7 +85,14 @@ function buatLaporan(sesi, g, ts) {
   if (g.aksi.length === 0) ringkas = 'Giliran selesai tanpa aksi alat — hanya menjawab.';
   else ringkas = `Giliran selesai: ${g.aksi.length} aksi oleh ${baris.length} karyawan.` +
     (luar.length ? ` ⚠ ${luar.length} aksi berdampak di luar folder.` : '');
-  return { type: 'laporan', sesi, ts, mulai: g.mulai, durasiMs: ts - g.mulai, ringkas, baris, luar };
+  // Bagian ruang kontrol: dipakai PJ saat melapor ke pengawas.
+  const tugas = shiftPada(tim.ruangKontrol, jadwal, ts);
+  const dariKontrol = g.aksi.filter((a) => a.lokasi === 'kontrol');
+  const perOrangKontrol = {};
+  for (const a of dariKontrol) perOrangKontrol[a.karyawan] = (perOrangKontrol[a.karyawan] || 0) + 1;
+  const kontrol = { jumlah: dariKontrol.length, perOrang: perOrangKontrol, luar: dariKontrol.filter((a) => a.luar).length };
+  const petugas = tugas ? { hari: tugas.hari, shift: tugas.shift, pj: tugas.pj, operator: tugas.operator } : null;
+  return { type: 'laporan', sesi, ts, mulai: g.mulai, durasiMs: ts - g.mulai, ringkas, baris, luar, kontrol, petugas };
 }
 
 // Memproses satu baris catatan. siar=false saat memutar ulang riwayat.

@@ -573,11 +573,11 @@ function pembangunKontrol(cfg) {
       gedung.add(pc.grup);
       pcs.push(pc);
     }
-    // 2 kursi petugas: operator (dekat PC 2–3), PJ (dekat PC 4–5)
+    // 2 kursi petugas: PJ di kiri (dekat PC 2–3), operator di kanan (dekat PC 4–5)
     const zKursi = zMeja + 0.75;
     kursiKantor(x0 - 1.25, zKursi); kursiKantor(x0 + 1.25, zKursi);
-    const kursiOperator = new THREE.Vector3(x0 - 1.25, 0, zKursi - 0.03);
-    const kursiPJ = new THREE.Vector3(x0 + 1.25, 0, zKursi - 0.03);
+    const kursiPJ = new THREE.Vector3(x0 - 1.25, 0, zKursi - 0.03);
+    const kursiOperator = new THREE.Vector3(x0 + 1.25, 0, zKursi - 0.03);
     // meja pengawas di belakang petugas
     const mp = buatMeja(1.4);
     mp.grup.position.set(x0, 0, z0 + d / 2 - 1.55);
@@ -693,6 +693,7 @@ function pembangunBos(t) {
     mejaManager.grup.position.set(x0 + 1.9, 0, z0 - 0.9);
     orangManager = buatOrang(`${man.nama} · ${man.peran || 'Manager'}`, '#8b5cf6');
     orangManager.kursi = mejaManager.kursi.clone().add(mejaManager.grup.position);
+    orangManager.tempat = orangManager.kursi.clone();
     orangManager.grup.position.copy(orangManager.kursi);
     gedung.add(mejaBos.grup, orangBos.grup, mejaManager.grup, orangManager.grup);
   } };
@@ -711,6 +712,7 @@ function bangunKantor(t) {
   gedung = new THREE.Group();
   adegan.add(gedung);
   orang = new Map(); warnaDivisi = new Map(); rk = null;
+  antrean.length = 0; langkahKini = null;
   tempatIstirahat.length = 0; tempatRekreasi.length = 0;
 
   const cfgRk = t.ruangKontrol || null;
@@ -820,8 +822,8 @@ function aturTempat() {
       }
     }
     if (!pos) pos = new THREE.Vector3(0, 0, 0); // tanpa ruang kontrol & tanpa meja (seharusnya tidak terjadi)
-    o.grup.position.copy(pos);
-    o.kaki.visible = berdiri;
+    o.tempat = pos.clone(); o.berdiri = berdiri;
+    if (!o.sedangJalan) { o.grup.position.copy(pos); o.kaki.visible = berdiri; }
     o.di = di;
     if (!(cfg && nama === cfg.pengawas)) o.namaEl.textContent = peran ? `${nama} · ${peran}` : nama;
     o.namaEl.classList.toggle('istirahat', di === 'istirahat' || di === 'rekreasi');
@@ -907,19 +909,108 @@ function perbaruiShift() {
   document.getElementById('sumber-jadwal').textContent = infoJadwal && infoJadwal.sumber ? `· ${infoJadwal.sumber}` : '';
 }
 
-// ---------- Manager lapor ke Bos (dipicu event Stop) ----------
-let jalan = null;
-function managerLapor(lap) {
-  if (!orangManager || !orangBos) return;
-  const asal = orangManager.kursi.clone();
-  const tujuan = orangBos.grup.position.clone().add(new THREE.Vector3(1.0, 0, 0.6));
-  gelembung(orangManager, 'menyusun laporan…');
-  jalan = { dari: asal, ke: tujuan, mulai: performance.now(), durasi: 1400, lalu: () => {
-    gelembung(orangManager, (lap.luar.length ? '⚠ lapor: ' : 'lapor: ') + lap.ringkas, lap.luar.length);
-    setTimeout(() => {
-      jalan = { dari: tujuan, ke: asal, mulai: performance.now(), durasi: 1400, lalu: () => gelembung(orangManager, '') };
-    }, 5000);
-  } };
+// ---------- Alur laporan (dipicu event Stop = Claude selesai menjawab) ----------
+// PJ shift berjalan ke Maya (pengawas) membawa laporan ruang kontrol, Maya menyusun
+// laporan pengawasan di komputernya lalu menyerahkannya ke Ena, dan Ena melapor ke Bos.
+// Semua isi gelembung berasal dari laporan asli yang dibuat server.
+const antrean = [];
+let langkahKini = null;
+const KECEPATAN = 3.2; // meter per detik
+
+function jalankanLangkah(daftar) { antrean.push(...daftar); if (!langkahKini) lanjutLangkah(performance.now()); }
+function lanjutLangkah(t) {
+  langkahKini = antrean.shift() || null;
+  if (!langkahKini) return;
+  langkahKini.mulai = t;
+  if (langkahKini.jenis === 'aksi') { langkahKini.f(); lanjutLangkah(t); return; }
+  if (langkahKini.jenis === 'jalan') {
+    const o = langkahKini.o;
+    const ke = typeof langkahKini.ke === 'function' ? langkahKini.ke() : langkahKini.ke;
+    if (!o || !ke) { lanjutLangkah(t); return; }
+    langkahKini.dari = o.grup.position.clone();
+    langkahKini.keV = ke.clone();
+    langkahKini.durasi = Math.max(700, langkahKini.dari.distanceTo(ke) / KECEPATAN * 1000);
+    o.sedangJalan = true; o.kaki.visible = true;
+  }
+}
+function majukanLangkah(t) {
+  const l = langkahKini;
+  if (!l) return;
+  if (l.jenis === 'tunggu') { if (t - l.mulai >= l.ms) lanjutLangkah(t); return; }
+  if (l.jenis === 'jalan') {
+    const k = Math.min(1, (t - l.mulai) / l.durasi);
+    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+    l.o.grup.position.lerpVectors(l.dari, l.keV, e);
+    if (k >= 1) {
+      if (l.pulang) { l.o.sedangJalan = false; l.o.grup.position.copy(l.o.tempat); l.o.kaki.visible = !!l.o.berdiri; }
+      lanjutLangkah(t);
+    }
+  }
+}
+const aksiL = (f) => ({ jenis: 'aksi', f });
+const tunggu = (ms) => ({ jenis: 'tunggu', ms });
+const jalanKe = (o, ke) => ({ jenis: 'jalan', o, ke });
+const pulang = (o) => ({ jenis: 'jalan', o, ke: () => o && o.tempat, pulang: true });
+const disamping = (o, dx, dz) => () => o && o.tempat && o.tempat.clone().add(new THREE.Vector3(dx, 0, dz));
+
+function ringkasKontrol(lap) {
+  const k = lap.kontrol || { jumlah: 0, perOrang: {}, luar: 0 };
+  const shift = lap.petugas ? `Shift ${lap.petugas.shift}` : 'Ruang kontrol';
+  if (!k.jumlah) return `${shift}: tidak ada aksi di ruang kontrol`;
+  const siapa = Object.entries(k.perOrang).map(([n, j]) => `${n} ${j}`).join(', ');
+  return `${shift}: ${k.jumlah} aksi (${siapa})` + (k.luar ? ` · ⚠ ${k.luar} luar folder` : '');
+}
+
+function alurLaporan(lap) {
+  const cfg = tim.ruangKontrol;
+  const maya = cfg && cfg.pengawas ? orang.get(cfg.pengawas) : null;
+  const langkah = [];
+  // 1) PJ (atau operator bila PJ kosong) melapor ke Maya — hanya petugas yang memang sedang di ruang kontrol.
+  const namaPJ = lap.petugas && (lap.petugas.pj || lap.petugas.operator);
+  const pj = namaPJ ? orang.get(namaPJ) : null;
+  if (maya && pj && pj.di === 'kontrol') {
+    langkah.push(
+      aksiL(() => gelembung(pj, 'membawa laporan ke ' + cfg.pengawas)),
+      jalanKe(pj, disamping(maya, 0.8, 0.15)),
+      aksiL(() => gelembung(pj, 'lapor: ' + ringkasKontrol(lap), (lap.kontrol || {}).luar)),
+      tunggu(4000),
+      aksiL(() => gelembung(pj, '')),
+      pulang(pj));
+  }
+  // 2) Maya menyusun laporan pengawasan di komputernya, lalu menyerahkannya ke Ena.
+  if (maya && orangManager) {
+    let layarSebelum = null;
+    langkah.push(
+      aksiL(() => {
+        if (maya.rumah) { layarSebelum = maya.rumah.layar; layarSebelum.set('nyala'); }
+        gelembung(maya, 'menyusun laporan pengawasan…');
+      }),
+      tunggu(2500),
+      aksiL(() => {
+        if (layarSebelum) {
+          let dipakai = false;
+          for (const g of giliran.values()) if (g.layar.has(layarSebelum)) dipakai = true;
+          layarSebelum.set(dipakai ? 'redup' : 'mati');
+        }
+        gelembung(maya, 'menyerahkan laporan ke ' + ((tim.manager && tim.manager.nama) || 'Manager'));
+      }),
+      jalanKe(maya, disamping(orangManager, -0.85, 0.2)),
+      aksiL(() => gelembung(maya, `laporan: ${lap.baris.length} karyawan, ${lap.luar.length ? '⚠ ' + lap.luar.length + ' luar folder' : 'tanpa aksi luar'}`, lap.luar.length)),
+      tunggu(3000),
+      aksiL(() => gelembung(maya, '')),
+      pulang(maya));
+  }
+  // 3) Ena melapor ke Bos (seperti sebelumnya).
+  if (orangManager && orangBos) {
+    langkah.push(
+      aksiL(() => gelembung(orangManager, 'menyusun laporan…')),
+      jalanKe(orangManager, () => orangBos.grup.position.clone().add(new THREE.Vector3(1.0, 0, 0.6))),
+      aksiL(() => gelembung(orangManager, (lap.luar.length ? '⚠ lapor: ' : 'lapor: ') + lap.ringkas, lap.luar.length)),
+      tunggu(5000),
+      aksiL(() => gelembung(orangManager, '')),
+      pulang(orangManager));
+  }
+  jalankanLangkah(langkah);
 }
 
 // ---------- Panel kanan ----------
@@ -1035,7 +1126,7 @@ function terima(p) {
     laporanAkhir = p;
     if (rk) { gambarPc(5); gambarTv(); }
     kartuLaporan(p);
-    managerLapor(p);
+    alurLaporan(p);
     perbaruiStatus();
   }
 }
@@ -1054,12 +1145,7 @@ setInterval(() => {
 }, 15000);
 
 function putar(t) {
-  if (jalan && orangManager) {
-    const k = Math.min(1, (t - jalan.mulai) / jalan.durasi);
-    const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
-    orangManager.grup.position.lerpVectors(jalan.dari, jalan.ke, e);
-    if (k >= 1) { const f = jalan.lalu; jalan = null; f && f(); }
-  }
+  majukanLangkah(t);
   kontrol.update();
   renderer.render(adegan, kamera);
   label2d.render(adegan, kamera);
@@ -1068,6 +1154,11 @@ function putar(t) {
 
 // Untuk pengujian/penyesuaian kamera dari konsol browser.
 window.__kantor = { kamera, kontrol, ruangKontrol: () => rk, pasKamera };
+
+// Tombol "Putar ulang": menjalankan lagi alur laporan TERAKHIR yang asli (tidak membuat laporan baru).
+document.getElementById('putar-laporan').addEventListener('click', () => {
+  if (laporanAkhir && !langkahKini) alurLaporan(laporanAkhir);
+});
 
 ukur();
 sambung();

@@ -1,14 +1,14 @@
 # Rangkuman Kantor AI: Sriwijaya Andalan Perkasa
 
 Catatan ini untuk melanjutkan pekerjaan: apa yang sudah dibuat, cara menjalankannya,
-dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 10 November 2026 (Riset digabung ke Teknik, bengkel elektro, Ruang Kontrol selebar kantor).
+dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 10 November 2026 (PJ duduk di kiri, alur laporan PJ → Maya → Ena → Bos).
 
 ## Apa ini
 
 Halaman web yang menampilkan kerja Claude Code sebagai kantor 3D. Setiap aksi Claude
 (baca, tulis, edit, jalankan perintah, dll.) membuat monitor karyawan yang cocok menyala
 dengan label kecil, misalnya `nulis · ide_konten.md`. Setelah Claude selesai menjawab,
-Manager (Ena) merangkum giliran itu jadi satu laporan ke Bos (kamu).
+laporan berjalan berantai: PJ shift → Maya (pengawas) → Ena (Manager) → Bos (kamu).
 Ada juga **Ruang Kontrol 24 jam** (6 PC, TV 65" dan 43") yang dijaga 2 orang per shift sesuai
 jadwal Excel, diawasi Maya, serta **Ruang Istirahat** dan **Ruang Rekreasi** (terpisah) untuk operator
 yang tidak bertugas.
@@ -91,6 +91,20 @@ Edit `kantor-ai/tim.json` lalu simpan. Server memuat ulang file ini sendiri, tan
 - Kalau file rusak (koma atau kutip hilang), terminal server menampilkan `tim.json tidak bisa dibaca`
   dan kantor tetap memakai susunan lama.
 
+## Alur laporan (setiap kali Claude selesai menjawab)
+
+Dipicu oleh event `Stop` yang asli. Isi setiap gelembung berasal dari laporan yang dibuat server.
+1. **PJ shift** berdiri dari kursinya, berjalan ke meja **Maya**, dan melapor bagian ruang kontrol:
+   *"lapor: Shift Malam: 2 aksi (Ayu 1, Wiwid 1) · ⚠ 1 luar folder"*. Lalu kembali ke kursinya.
+   Kalau PJ kosong di jadwal, operator yang melapor. Kalau tidak ada petugas di ruang kontrol, langkah ini dilewati.
+2. **Maya** menyalakan komputernya dan *"menyusun laporan pengawasan…"*, lalu berjalan ke **Ena**
+   menyerahkan laporan (*"laporan: 3 karyawan, ⚠ 1 luar folder"*) dan kembali.
+3. **Ena** berjalan ke **Bos** dan melaporkan ringkasan lengkap, lalu kembali.
+
+Satu alur memakan sekitar 25 detik. Kalau Claude selesai menjawab lagi sebelum alur selesai, alur berikutnya
+menunggu giliran. Tombol **▶ Putar ulang** di panel Laporan Manager menjalankan lagi alur laporan **terakhir**
+(tidak membuat laporan baru). Kode: `kantor.js`, fungsi `alurLaporan`; kecepatan jalan `KECEPATAN`.
+
 ## Tata letak ruangan
 
 Diatur di `tim.json`, bagian `"tataLetak"`: daftar baris dari belakang ke depan, tiap baris berisi id ruang.
@@ -123,7 +137,7 @@ Pengaturan di `tim.json`, bagian `"ruangKontrol"`. Jadwal di `kantor-ai/jadwal.x
 | Bengkel Teknik & Riset | 2 meja kerja elektro (Bayu, Putri): alas ESD, papan alat (obeng, tang, kunci), monitor, power supply kecil, stasiun solder, bor, multimeter, charger aki + aki di rak bawah. Angka power supply menyala hanya saat teknisinya bekerja. Diatur dengan `"ruangan": "bengkel"` di divisi. |
 
 Cara kerjanya:
-- Petugas shift duduk di Ruang Kontrol (operator di depan PC 1–3, PJ di depan PC 4–6).
+- Petugas shift duduk di Ruang Kontrol: **PJ di kiri** (dekat PC 2–3), **operator di kanan** (dekat PC 4–5).
   Operator lain yang tidak bertugas: 2 orang pertama main pingpong di Ruang Rekreasi (berdiri), sisanya duduk
   di Ruang Istirahat. Urutannya tetap (menurut daftar operator), bukan acak. Pergantian shift mengikuti jam komputer, dicek tiap 15 detik.
 - Kalau Claude mengerjakan file milik operator yang sedang istirahat, pekerjaan itu **diambil petugas shift**
@@ -220,6 +234,7 @@ Perubahan `server.js`, `pemetaan.js`, atau `hook.js` butuh restart server (tutup
    kontrol asli; Ruang Istirahat dan Rekreasi dipisah; Pemasaran di sebelah Ruang Bos
 10. Riset digabung ke Teknik ("Teknik & Riset", bengkel elektro untuk Bayu & Putri), Ruang Kontrol
     melebar mengambil tempat Riset, PC 4 menampilkan semua aktivitas
+11. PJ duduk di kiri; alur laporan berantai PJ → Maya → Ena → Bos; tombol Putar ulang
 
 Semua ada di branch `claude/practical-gauss-ngei1a` di GitHub `vimax707/onlineexpress`.
 
