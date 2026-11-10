@@ -7,7 +7,8 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { petakan, label } = require('./pemetaan');
+const { petakan, petugasAksi, label } = require('./pemetaan');
+const { muatJadwal, shiftPada, pilihFile } = require('./jadwal');
 
 const PORT = Number(process.env.PORT) || 4777;
 const HOST = '127.0.0.1';
@@ -19,6 +20,8 @@ const BATAS_RIWAYAT_LAPORAN = 40;
 const GILIRAN_BASI_MS = 10 * 60 * 1000; // giliran tanpa kabar 10 menit dianggap berhenti
 
 let tim = { divisi: [] };
+let jadwal = { sumber: null, slot: {}, peringatan: [] };
+let tugasKini = null; // shift yang sedang berjalan
 let offset = 0;
 let sisa = '';
 let nomor = 0;
@@ -30,6 +33,26 @@ const klien = new Set();
 function muatTim() {
   try { tim = JSON.parse(fs.readFileSync(TIM_FILE, 'utf8')); return true; }
   catch (e) { console.error('[kantor] tim.json tidak bisa dibaca:', e.message); return false; }
+}
+
+function muatJadwalUlang() {
+  const baru = muatJadwal(DIR, tim.ruangKontrol);
+  // File sedang disimpan Excel dan belum utuh: pakai jadwal terakhir yang baik.
+  if (baru.gagal && Object.keys(jadwal.slot).length) { jadwal.peringatan = baru.peringatan; return; }
+  jadwal = baru;
+  for (const p of jadwal.peringatan) console.log('[kantor] jadwal:', p);
+}
+
+function infoJadwal() {
+  return { sumber: jadwal.sumber, peringatan: jadwal.peringatan.slice(0, 30), jumlahPeringatan: jadwal.peringatan.length };
+}
+
+function tugasPada(ts) {
+  const t = shiftPada(tim.ruangKontrol, jadwal, ts);
+  if (!t) return null;
+  t.berikutnya = shiftPada(tim.ruangKontrol, jadwal, t.selesaiTs + 1000);
+  if (t.berikutnya) delete t.berikutnya.berikutnya;
+  return t;
 }
 
 function kirim(pesan) {
@@ -46,13 +69,15 @@ function buatLaporan(sesi, g, ts) {
   const perOrang = new Map();
   for (const a of g.aksi) {
     const kunci = a.karyawan || '?';
-    if (!perOrang.has(kunci)) perOrang.set(kunci, { karyawan: kunci, divisi: a.divisi, item: new Map() });
+    if (!perOrang.has(kunci)) perOrang.set(kunci, { karyawan: kunci, divisi: a.divisi, lokasi: a.lokasi, item: new Map() });
     const it = perOrang.get(kunci).item;
-    it.set(a.label, (it.get(a.label) || 0) + 1);
+    const l = a.asli ? `${a.label} (tugas ${a.asli})` : a.label;
+    it.set(l, (it.get(l) || 0) + 1);
   }
   const baris = [...perOrang.values()].map((o) => ({
     karyawan: o.karyawan,
-    divisi: namaDivisi(o.divisi),
+    divisi: o.lokasi === 'kontrol' ? ((tim.ruangKontrol && tim.ruangKontrol.nama) || 'Ruang Kontrol')
+      : o.lokasi === 'pengawas' ? `Pengawas ${(tim.ruangKontrol && tim.ruangKontrol.nama) || 'Ruang Kontrol'}` : namaDivisi(o.divisi),
     kerja: [...o.item.entries()].map(([l, n]) => (n > 1 ? `${l} ×${n}` : l)),
   }));
   const luar = g.aksi.filter((a) => a.luar).map((a) => ({ karyawan: a.karyawan, alasan: a.luar, label: a.label }));
@@ -75,8 +100,11 @@ function proses(b, siar) {
     let g = giliran.get(sesi);
     if (!g) { g = { mulai: ts, terakhir: ts, aksi: [] }; giliran.set(sesi, g); }
     const p = petakan(tim, b);
+    const tugas = shiftPada(tim.ruangKontrol, jadwal, ts);
+    const pt = petugasAksi(tim, tugas, b, p);
     const a = { type: 'aksi', id: ++nomor, sesi, ts, tool: b.tool, file: b.file || null,
-      label: label(b), divisi: p.divisi, karyawan: p.karyawan, luar: b.luar || null };
+      label: label(b), divisi: p.divisi, karyawan: pt.karyawan, asli: pt.asli, lokasi: pt.lokasi,
+      shift: tugas ? tugas.shift : null, luar: b.luar || null };
     g.aksi.push(a); g.terakhir = ts;
     aksiTerakhir.push(a);
     if (aksiTerakhir.length > BATAS_RIWAYAT_AKSI) aksiTerakhir.shift();
@@ -125,7 +153,8 @@ function snapshot() {
   const kini = Date.now();
   const aktif = {};
   for (const [s, g] of giliran) if (kini - g.terakhir < GILIRAN_BASI_MS) aktif[s] = g;
-  return { type: 'awal', tim, aksi: aksiTerakhir, laporan: laporanTerakhir, aktif, kini };
+  return { type: 'awal', tim, aksi: aksiTerakhir, laporan: laporanTerakhir, aktif, kini,
+    tugas: tugasPada(kini), jadwal: infoJadwal() };
 }
 
 const STATIS = {
@@ -164,12 +193,41 @@ const server = http.createServer((req, res) => {
 });
 
 muatTim();
+muatJadwalUlang();
 putarUlang();
+tugasKini = tugasPada(Date.now());
 setInterval(() => bacaBaru(true), 250);
 setInterval(() => { for (const r of klien) r.write(': detak\n\n'); }, 20000);
 fs.watchFile(TIM_FILE, { interval: 1000 }, () => {
-  if (muatTim()) { putarUlang(); kirim(snapshot()); console.log('[kantor] tim.json dimuat ulang'); }
+  if (muatTim()) { muatJadwalUlang(); pantauJadwal(); putarUlang(); kirim(snapshot()); console.log('[kantor] tim.json dimuat ulang'); }
 });
+
+// Jadwal (.xlsx / .csv) diawasi; disimpan dari Excel -> kantor ikut berubah.
+let fileDiawasi = [];
+function pantauJadwal() {
+  for (const f of fileDiawasi) fs.unwatchFile(f);
+  fileDiawasi = tim.ruangKontrol ? pilihFile(DIR, tim.ruangKontrol.jadwal || 'jadwal.xlsx').semua : [];
+  for (const f of fileDiawasi) {
+    fs.watchFile(f, { interval: 1000 }, (kini, dulu) => {
+      if (kini.mtimeMs === dulu.mtimeMs && kini.size === dulu.size) return;
+      setTimeout(() => { // beri waktu Excel selesai menulis
+        muatJadwalUlang(); putarUlang(); tugasKini = tugasPada(Date.now()); kirim(snapshot());
+        console.log(`[kantor] jadwal dimuat ulang dari ${jadwal.sumber || '(tidak ada)'}`);
+      }, 400);
+    });
+  }
+}
+pantauJadwal();
+
+// Pergantian shift mengikuti jam komputer ini.
+setInterval(() => {
+  const t = tugasPada(Date.now());
+  if ((t && t.kunci) !== (tugasKini && tugasKini.kunci)) {
+    tugasKini = t;
+    kirim({ type: 'shift', tugas: t });
+    if (t) console.log(`[kantor] shift ${t.shift} ${t.hari}: PJ ${t.pj || '-'}, operator ${t.operator || '-'}`);
+  }
+}, 15000);
 
 const ALAMAT = `http://${HOST}:${PORT}`;
 const BUKA = process.argv.includes('--buka');

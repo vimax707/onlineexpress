@@ -43,6 +43,11 @@ walau server sedang mati. Saat server dinyalakan, riwayat dibaca ulang dari cata
    dan label kecil berisi kerjaannya. Karyawan yang sudah bekerja di giliran ini: monitor redup.
    Saat giliran selesai, semua monitor mati dan Manager berjalan ke meja Bos untuk melapor.
 
+## Ruang Kontrol & jadwal shift
+
+Ruang Kontrol dijaga 2 orang per shift (PJ + operator) sesuai `jadwal.xlsx`, yang bisa diedit di Excel.
+Penjelasan lengkap ada di `RANGKUMAN.md`, bagian *Ruang Kontrol & shift*.
+
 ## Mengatur tim (`tim.json`)
 
 Server memuat ulang file ini otomatis saat disimpan.

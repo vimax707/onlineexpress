@@ -1,7 +1,7 @@
 # Rangkuman Kantor AI: Sriwijaya Andalan Perkasa
 
 Catatan ini untuk melanjutkan pekerjaan: apa yang sudah dibuat, cara menjalankannya,
-dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 5 November 2026 (terbukti jalan di Windows).
+dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 10 November 2026 (Ruang Kontrol 24 jam dengan shift).
 
 ## Apa ini
 
@@ -9,6 +9,8 @@ Halaman web yang menampilkan kerja Claude Code sebagai kantor 3D. Setiap aksi Cl
 (baca, tulis, edit, jalankan perintah, dll.) membuat monitor karyawan yang cocok menyala
 dengan label kecil, misalnya `nulis · ide_konten.md`. Setelah Claude selesai menjawab,
 Manager (Ena) merangkum giliran itu jadi satu laporan ke Bos (kamu).
+Ada juga **Ruang Kontrol 24 jam** (6 PC, TV 65" dan 43") yang dijaga 2 orang per shift sesuai
+jadwal Excel, diawasi Maya, dan **Ruang Istirahat & Rekreasi** untuk operator yang tidak bertugas.
 
 **Prinsip utama: semua yang tampil itu kerja sungguhan.** Tidak ada status acak atau
 aktivitas karangan. Kalau Claude sedang tidak bekerja, kantornya diam.
@@ -35,7 +37,9 @@ Perlu **Node.js** (https://nodejs.org). Tidak perlu `npm install`, karena tidak 
 |---|---|
 | `hook.js` | Dipanggil Claude Code di setiap aksi. Menulis satu baris ke `data/aktivitas.jsonl`. |
 | `server.js` | Server lokal (hanya 127.0.0.1). Membaca catatan dan mengirim aksi ke browser secara langsung. |
-| `pemetaan.js` | Aturan "aksi ini milik karyawan siapa" dan kata kerja label (`nulis`, `baca`, …). |
+| `pemetaan.js` | Aturan "aksi ini milik karyawan siapa", serah-terima ke petugas shift, dan kata kerja label. |
+| `jadwal.js` | Membaca jadwal shift dari `jadwal.xlsx` (Excel) atau `jadwal.csv`, dan menentukan shift yang sedang berjalan. |
+| `jadwal.xlsx` | **Jadwal shift Ruang Kontrol.** Buka di Excel, ubah, simpan. Ada dropdown nama dan sheet Petunjuk. |
 | `tim.json` | **Susunan tim**: nama kantor, Manager, Bos, divisi, karyawan, aturan. |
 | `public/index.html` | Kerangka halaman. |
 | `public/kantor.js` | Gambar kantor 3D (Three.js) dan panel kanan. |
@@ -83,6 +87,39 @@ Edit `kantor-ai/tim.json` lalu simpan. Server memuat ulang file ini sendiri, tan
 - Kalau file rusak (koma atau kutip hilang), terminal server menampilkan `tim.json tidak bisa dibaca`
   dan kantor tetap memakai susunan lama.
 
+## Ruang Kontrol & shift
+
+Pengaturan di `tim.json`, bagian `"ruangKontrol"`. Jadwal di `kantor-ai/jadwal.xlsx`.
+
+| Hal | Isi sekarang |
+|---|---|
+| Shift (jam komputer ini) | Pagi 07.00–15.00, Siang 15.00–23.00, Malam 23.00–07.00 (shift Malam ikut hari mulainya) |
+| Per shift | 2 orang: 1 **Penanggung Jawab (PJ)** + 1 **Operator** |
+| Operator (7) | Anis, Wiwid, Reza, Flo, Nana, Ayu, Diana |
+| Bisa jadi PJ (4) | Wiwid, Flo, Diana, Anis |
+| Pengawas | Maya (mejanya dipindah dari Pemasaran ke belakang operator di Ruang Kontrol) |
+| Layar | PC 1–4 = Umum, Teknik, Pemasaran, Riset → tampil di **TV 65"**; PC 5 = shift & petugas, PC 6 = laporan Manager → tampil di **TV 43"** |
+
+Cara kerjanya:
+- Petugas shift duduk di Ruang Kontrol (operator di depan PC 1–3, PJ di depan PC 4–6).
+  Operator lain duduk di Ruang Istirahat & Rekreasi. Pergantian shift mengikuti jam komputer, dicek tiap 15 detik.
+- Kalau Claude mengerjakan file milik operator yang sedang istirahat, pekerjaan itu **diambil petugas shift**
+  dan tertulis "Reza (tugas Ayu)". Aksi yang berdampak di luar folder (⚠) yang jatuh ke operator selalu ditangani **PJ**.
+  Karyawan yang bukan operator (Wanda, Bayu, Putri) tetap bekerja di mejanya.
+- PC divisi menyala (bingkai hijau) saat ada aksi di divisi itu. TV menampilkan isi PC-nya. Semua layar hanya
+  digambar ulang saat ada aksi, laporan, atau pergantian shift.
+- Kalau shift tertentu tidak ada petugasnya di jadwal, operator bekerja di meja divisinya seperti biasa.
+
+Jadwal awal disusun acak (sekali, lalu disimpan) dengan aturan: tiap orang 6 shift per minggu,
+paling banyak 1 shift sehari, tidak langsung dari Malam ke Pagi.
+
+### Mengubah jadwal di Excel
+1. Buka `kantor-ai\jadwal.xlsx`. Satu baris = satu shift pada satu hari (Hari, Shift, Jam, Penanggung Jawab, Operator).
+2. Pilih nama dari dropdown, lalu simpan (Ctrl+S) tetap sebagai `.xlsx`.
+3. Kantor membaca ulang dalam 1–2 detik. Salah ketik muncul sebagai kotak kuning **Catatan jadwal** di panel kanan.
+- Bisa juga memakai `jadwal.csv` (pemisah `;` atau `,`) dengan kolom yang sama. Kalau keduanya ada, yang terakhir disimpan yang dipakai.
+- Jam shift dan daftar nama diubah di `tim.json` (`"shift"`, `"operator"`, `"penanggungJawab"`, `"pengawas"`).
+
 ## Cara mengubah tampilan (`public/kantor.js` dan `public/gaya.css`)
 
 | Yang diubah | Di mana |
@@ -95,7 +132,10 @@ Edit `kantor-ai/tim.json` lalu simpan. Server memuat ulang file ini sendiri, tan
 | Jarak antar baris ruangan | `kantor.js`, `z += tinggiBaris + 2.4` |
 | Warna baju Bos / Manager | `kantor.js`, `'#334155'` (Bos), `'#8b5cf6'` (Manager) |
 | Warna layar monitor yang menyala | `kantor.js`, `LAYAR_NYALA` |
-| Posisi awal kamera | `kantor.js`, `kamera.position.set(…)` |
+| Posisi awal kamera (otomatis memuat seluruh kantor) | `kantor.js`, `pasKamera()`, arah `new THREE.Vector3(0, 0.82, 0.57)` |
+| Ukuran/letak TV 65" & 43" | `kantor.js`, `bangunRuangKontrol`, `buatTv(1.44, 0.81, …)` dan `buatTv(0.95, 0.534, …)` |
+| Isi layar PC/TV | `kantor.js`, `gambarDivisi`, `gambarShift`, `gambarLaporan` |
+| Perabot ruang istirahat | `kantor.js`, `bangunRuangIstirahat` (sofa, meja kopi, pingpong, tanaman, bean bag) |
 | Ukuran nama karyawan, gelembung label | `gaya.css`, `.nama`, `.gelembung` |
 | Panel kanan (lebar 360px, kartu laporan) | `gaya.css`, `#tata`, `.laporan`, `.aksi` |
 
@@ -132,6 +172,10 @@ Perubahan `server.js`, `pemetaan.js`, atau `hook.js` butuh restart server (tutup
 - **Sudah terbukti jalan di Windows** (D:\SAP\KantoAI\onlineexpress, Claude Code 2.1.318): hook mencatat,
   monitor menyala, dan laporan Manager muncul. `cek.bat` belum pernah dijalankan di sana.
 - Hook versi lama (`$CLAUDE_PROJECT_DIR`) membuat kantor diam di Windows. Jangan kembalikan ke bentuk itu.
+- Saat jadwal diubah, riwayat aksi lama ikut dihitung ulang memakai jadwal baru (siapa yang "bertugas"
+  pada jam itu mengikuti isi jadwal terbaru).
+- Ruang Kontrol diuji di Linux dengan jadwal buatan openpyxl. File `.xlsx` yang disimpan oleh Excel sungguhan
+  di Windows belum diuji. Kalau terbaca salah, simpan sebagai CSV (`jadwal.csv`) sebagai jalan keluar.
 
 ## Riwayat perubahan
 
@@ -142,6 +186,8 @@ Perubahan `server.js`, `pemetaan.js`, atau `hook.js` butuh restart server (tutup
 5. Ganti nama karyawan, lantai abu-abu muda
 6. Alat jalankan (`jalankan.bat`, `jalankan.sh`) dan rangkuman ini
 7. Hook tidak bergantung jenis terminal (perbaikan untuk Windows), `cek.bat` untuk pemeriksaan
+8. Ruang Kontrol 24 jam (6 PC, TV 65" & 43", PJ + operator per shift, Maya pengawas),
+   Ruang Istirahat & Rekreasi, jadwal shift dari Excel
 
 Semua ada di branch `claude/practical-gauss-ngei1a` di GitHub `vimax707/onlineexpress`.
 

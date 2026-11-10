@@ -54,5 +54,19 @@
       ]
     }
   ],
-  "cadangan": "riset"
+  "cadangan": "riset",
+  "ruangKontrol": {
+    "_catatan": "Ruang kontrol 24 jam. 2 orang per shift: 1 penanggung jawab (PJ) + 1 operator, sesuai jadwal.xlsx (atau jadwal.csv). Operator yang tidak bertugas ada di ruang istirahat; pekerjaannya dikerjakan operator yang bertugas, dan aksi yang berdampak ke luar folder dikerjakan PJ.",
+    "nama": "Ruang Kontrol",
+    "pengawas": "Maya",
+    "operator": ["Anis", "Wiwid", "Reza", "Flo", "Nana", "Ayu", "Diana"],
+    "penanggungJawab": ["Wiwid", "Flo", "Diana", "Anis"],
+    "shift": [
+      { "nama": "Pagi", "mulai": "07:00", "selesai": "15:00" },
+      { "nama": "Siang", "mulai": "15:00", "selesai": "23:00" },
+      { "nama": "Malam", "mulai": "23:00", "selesai": "07:00" }
+    ],
+    "jadwal": "jadwal.xlsx",
+    "ruangIstirahat": "Ruang Istirahat & Rekreasi"
+  }
 }

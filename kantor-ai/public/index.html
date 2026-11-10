@@ -19,11 +19,16 @@
     <header id="atas">
       <h1>Kantor AI</h1>
       <span id="status" class="status diam"><i></i><b>Menyambung…</b></span>
+      <span id="shift" class="status shift" hidden><i></i><b></b></span>
     </header>
     <div id="kanvas"></div>
     <p id="petunjuk">Seret untuk memutar · gulir untuk zoom</p>
   </section>
   <aside id="panel">
+    <section class="kotak kecil" id="kotak-jadwal" hidden>
+      <h2>Catatan jadwal <small id="sumber-jadwal"></small></h2>
+      <ul id="daftar-jadwal"></ul>
+    </section>
     <section class="kotak">
       <h2>Aktivitas karyawan <small id="jumlah-aksi"></small></h2>
       <ol id="daftar-aksi"><li class="kosong">Belum ada aksi tercatat.</li></ol>

@@ -84,4 +84,23 @@ function label(aksi) {
   return f ? `${kataKerja(aksi.tool)} · ${f}` : kataKerja(aksi.tool);
 }
 
-module.exports = { petakan, label, kataKerja, namaFile };
+// Ruang Kontrol: operator yang tidak sedang bertugas sedang istirahat, jadi
+// pekerjaannya diambil alih petugas shift. Aksi yang berdampak di luar folder
+// dikerjakan Penanggung Jawab (PJ). Mengembalikan { karyawan, asli, lokasi }.
+//   lokasi: 'kontrol' (duduk di ruang kontrol), 'pengawas', atau 'meja' (meja divisi).
+function petugasAksi(tim, tugas, aksi, hasilPeta) {
+  const rk = tim.ruangKontrol;
+  const nama = hasilPeta.karyawan;
+  const tanpaUbah = { karyawan: nama, asli: null, lokasi: 'meja' };
+  if (!rk || !nama) return tanpaUbah;
+  if (nama === rk.pengawas) return { ...tanpaUbah, lokasi: 'pengawas' };
+  if (!(rk.operator || []).includes(nama)) return tanpaUbah;
+  // Tanpa petugas terjadwal di shift ini, operator bekerja di meja divisinya seperti biasa.
+  if (!tugas || (!tugas.pj && !tugas.operator)) return tanpaUbah;
+  // Aksi yang berdampak di luar folder selalu ditangani PJ shift.
+  if (aksi.luar && tugas.pj) return { karyawan: tugas.pj, asli: nama === tugas.pj ? null : nama, lokasi: 'kontrol' };
+  if (nama === tugas.pj || nama === tugas.operator) return { karyawan: nama, asli: null, lokasi: 'kontrol' };
+  return { karyawan: tugas.operator || tugas.pj, asli: nama, lokasi: 'kontrol' };
+}
+
+module.exports = { petakan, petugasAksi, label, kataKerja, namaFile };
