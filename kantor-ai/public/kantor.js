@@ -81,6 +81,14 @@ const bahan = {
   tirai2: new THREE.MeshStandardMaterial({ color: '#56d3b2', roughness: 0.95 }),
   putih: new THREE.MeshStandardMaterial({ color: '#fafafa', roughness: 0.5 }),
   celana: new THREE.MeshStandardMaterial({ color: '#3b4252', roughness: 0.8 }),
+  esd: new THREE.MeshStandardMaterial({ color: '#8fb3d1', roughness: 0.9 }),
+  rangka: new THREE.MeshStandardMaterial({ color: '#9aa3ad', roughness: 0.4, metalness: 0.3 }),
+  papanAlat: new THREE.MeshStandardMaterial({ color: '#e5e7eb', roughness: 0.8 }),
+  oranye: new THREE.MeshStandardMaterial({ color: '#f97316', roughness: 0.5 }),
+  kuning: new THREE.MeshStandardMaterial({ color: '#facc15', roughness: 0.5 }),
+  merah: new THREE.MeshStandardMaterial({ color: '#dc2626', roughness: 0.5 }),
+  hitam: new THREE.MeshStandardMaterial({ color: '#1f2228', roughness: 0.6 }),
+  abu: new THREE.MeshStandardMaterial({ color: '#6b7280', roughness: 0.5 }),
 };
 const LAYAR_MATI = new THREE.Color('#1c1f24');
 const LAYAR_NYALA = new THREE.Color('#8fd0ff');
@@ -138,6 +146,91 @@ function buatMeja(lebar = 1.4) {
         layarMat.color.copy(LAYAR_MATI); layarMat.emissive.set('#000000'); layarMat.emissiveIntensity = 0;
         casingMat.emissive.set('#000000'); lampuMat.emissive.set('#000000');
       }
+    },
+  };
+  return meja;
+}
+
+// Meja kerja teknik elektro: alas ESD, papan alat, monitor, power supply kecil,
+// solder, bor, multimeter, dan charger aki + aki di rak bawah. Layar monitor dan
+// angka power supply hanya menyala saat teknisinya bekerja.
+function buatMejaBengkel() {
+  const g = new THREE.Group();
+  const L = 2.0;
+  g.add(kotak(L, 0.05, 0.8, bahan.esd, 0, 0.75, 0));
+  for (const sx of [-1, 1]) for (const sz of [-1, 1])
+    g.add(kotak(0.05, 0.72, 0.05, bahan.rangka, sx * (L / 2 - 0.05), 0.36, sz * 0.35));
+  g.add(kotak(L - 0.1, 0.03, 0.7, bahan.rangka, 0, 0.22, 0));           // rak bawah
+  // papan alat (pegboard) di belakang, berisi obeng & tang
+  g.add(kotak(L, 0.9, 0.03, bahan.papanAlat, 0, 1.3, -0.4));
+  for (let k = 0; k < 2; k++) g.add(kotak(0.03, 0.9, 0.03, bahan.rangka, (k ? 1 : -1) * (L / 2 - 0.02), 1.3, -0.4));
+  [['#ef4444', -0.9], ['#3b82f6', -0.78], ['#eab308', -0.66], ['#22c55e', -0.54]].forEach(([w, x]) =>
+    g.add(kotak(0.025, 0.24, 0.02, new THREE.MeshStandardMaterial({ color: w }), x, 1.48, -0.375)));
+  g.add(kotak(0.16, 0.05, 0.02, bahan.merah, 0.7, 1.55, -0.375));   // tang
+  g.add(kotak(0.05, 0.16, 0.02, bahan.merah, 0.66, 1.46, -0.375));
+  g.add(kotak(0.05, 0.16, 0.02, bahan.merah, 0.74, 1.46, -0.375));
+  g.add(kotak(0.3, 0.03, 0.02, bahan.abu, 0.35, 1.62, -0.375));     // kunci pas
+  // monitor
+  const casingMat = bahan.monitor.clone(); casingMat.emissive = new THREE.Color('#000000');
+  g.add(kotak(0.06, 0.18, 0.06, bahan.kaki, -0.25, 0.87, -0.22));
+  g.add(kotak(0.66, 0.42, 0.05, casingMat, -0.25, 1.17, -0.24));
+  const layarMat = new THREE.MeshStandardMaterial({ color: '#1c1f24', emissive: '#000000', roughness: 0.3 });
+  const layar = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.36), layarMat);
+  layar.position.set(-0.25, 1.17, -0.213);
+  g.add(layar);
+  // power supply kecil (DC bench PSU) dengan 2 layar angka + kenop
+  g.add(kotak(0.32, 0.16, 0.26, bahan.abu, 0.55, 0.855, -0.15));
+  const angkaMat = [new THREE.MeshStandardMaterial({ color: '#2a2e35', emissive: '#000000' }),
+    new THREE.MeshStandardMaterial({ color: '#2a2e35', emissive: '#000000' })];
+  angkaMat.forEach((m, k) => {
+    const a = new THREE.Mesh(new THREE.PlaneGeometry(0.11, 0.045), m);
+    a.position.set(0.48 + k * 0.14, 0.885, -0.019); g.add(a);
+  });
+  for (const kx of [0.48, 0.62]) {
+    const kn = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.02, 12), bahan.hitam);
+    kn.rotation.x = Math.PI / 2; kn.position.set(kx, 0.825, -0.015); g.add(kn);
+  }
+  g.add(kotak(0.02, 0.02, 0.02, bahan.merah, 0.44, 0.8, -0.015));
+  g.add(kotak(0.02, 0.02, 0.02, bahan.hitam, 0.5, 0.8, -0.015));
+  // stasiun solder + tangkai solder
+  g.add(kotak(0.16, 0.09, 0.15, bahan.hitam, 0.86, 0.82, 0.05));
+  const solder = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.008, 0.2, 8), bahan.kuning);
+  solder.rotation.z = Math.PI / 3; solder.position.set(0.82, 0.9, 0.18); g.add(solder);
+  // bor tangan (cordless drill)
+  const bor = new THREE.Group();
+  const badanBor = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.22, 12), bahan.oranye);
+  badanBor.rotation.z = Math.PI / 2; badanBor.position.set(0, 0.17, 0); bor.add(badanBor);
+  bor.add(kotak(0.05, 0.13, 0.06, bahan.hitam, 0.04, 0.09, 0));
+  bor.add(kotak(0.1, 0.05, 0.09, bahan.hitam, 0.05, 0.02, 0));
+  const mata = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.006, 0.09, 6), bahan.rangka);
+  mata.rotation.z = Math.PI / 2; mata.position.set(-0.15, 0.17, 0); bor.add(mata);
+  bor.position.set(-0.75, 0.775, 0.12); bor.rotation.y = 0.5; g.add(bor);
+  // multimeter kuning
+  g.add(kotak(0.1, 0.035, 0.18, bahan.kuning, 0.25, 0.79, 0.2));
+  g.add(kotak(0.07, 0.005, 0.05, bahan.hitam, 0.25, 0.81, 0.17));
+  // charger aki + aki di rak bawah, dengan kabel jepit merah/hitam
+  g.add(kotak(0.36, 0.2, 0.24, bahan.merah, 0.45, 0.335, 0));
+  g.add(kotak(0.2, 0.06, 0.005, bahan.hitam, 0.45, 0.38, 0.122));
+  g.add(kotak(0.32, 0.2, 0.18, bahan.hitam, -0.1, 0.335, 0.02));
+  g.add(kotak(0.03, 0.03, 0.03, bahan.merah, -0.2, 0.45, 0.02));
+  g.add(kotak(0.03, 0.03, 0.03, bahan.abu, 0.0, 0.45, 0.02));
+  g.add(kotak(0.33, 0.012, 0.012, bahan.merah, 0.1, 0.47, 0.06));
+  g.add(kotak(0.38, 0.012, 0.012, bahan.hitam, 0.17, 0.46, 0.0));
+  // kursi teknisi
+  g.add(kotak(0.45, 0.08, 0.45, bahan.kursi, 0, 0.45, 0.75));
+  g.add(kotak(0.45, 0.45, 0.06, bahan.kursi, 0, 0.73, 0.98));
+  const meja = { grup: g, kursi: new THREE.Vector3(0, 0, 0.72) };
+  meja.layar = {
+    jenis: 'bengkel',
+    set(mode) {
+      const nyala = mode === 'nyala', redup = mode === 'redup';
+      layarMat.color.copy(nyala ? LAYAR_NYALA : redup ? new THREE.Color('#3b4a5c') : LAYAR_MATI);
+      layarMat.emissive.copy(nyala || redup ? LAYAR_NYALA : new THREE.Color('#000000'));
+      layarMat.emissiveIntensity = nyala ? 0.9 : redup ? 0.18 : 0;
+      casingMat.emissive.copy(nyala || redup ? LAYAR_NYALA : new THREE.Color('#000000'));
+      casingMat.emissiveIntensity = nyala ? 0.55 : redup ? 0.12 : 0;
+      angkaMat[0].emissive.set(nyala ? '#ef4444' : '#000000'); angkaMat[0].emissiveIntensity = 1.2;
+      angkaMat[1].emissive.set(nyala ? '#22c55e' : '#000000'); angkaMat[1].emissiveIntensity = 1.2;
     },
   };
   return meja;
@@ -321,6 +414,9 @@ function divisiKePc(id) {
   const i = (tim.divisi || []).findIndex((d) => d.id === id);
   return i < 0 ? 3 : Math.min(i, 3);
 }
+// Kalau divisi kurang dari 4, PC 4 menampilkan semua aktivitas kantor.
+function pcSemua() { return (tim.divisi || []).length < 4 ? 3 : -1; }
+const semuaAksi = [];
 
 // ---------- Ruang kontrol ----------
 // Satu komputer desktop: monitor di atas meja, keyboard, dan CPU di bawah meja
@@ -365,7 +461,9 @@ function buatPc(i) {
 function gambarPc(i) {
   if (!rk) return;
   const pc = rk.pcs[i], { ctx, c, tex } = pc.kv;
-  if (i < 4) {
+  if (i === pcSemua()) {
+    gambarDivisi(ctx, 0, 0, c.width, c.height, { nama: 'Semua aktivitas', warna: '#475569' }, { aksi: semuaAksi }, pc.mode);
+  } else if (i < 4) {
     const d = (tim.divisi || [])[i];
     gambarDivisi(ctx, 0, 0, c.width, c.height, d, d && dataDivisi.get(d.id), pc.mode);
   } else if (i === 4) gambarShift(ctx, 0, 0, c.width, c.height, tugasKini, infoJadwal, tim.ruangKontrol && tim.ruangKontrol.pengawas);
@@ -435,13 +533,14 @@ function buatTv(lebar, tinggi, judul) {
 // TV 65" di tengah, TV 43" di kiri (berdiri di tiang), meja kayu panjang dengan
 // 6 PC berjajar, 2 kursi petugas, meja pengawas di belakang.
 function pembangunKontrol(cfg) {
-  const w = 13.5, d = 6.4;
-  return { w, d, bangun(x0, z0) {
+  const d = 6.4;
+  return { w: Number(cfg.lebar) || 13.5, d, kontrol: true, bangun(x0, z0) {
+    const w = this.w;
     taruh(buatRuang(cfg.nama || 'Ruang Kontrol', '#0ea5e9', w, d, '#f6f7f5'), x0, 0, z0);
     const belakang = z0 - d / 2;
     // dinding tinggi + jendela bertirai
     gedung.add(kotak(w, 2.9, 0.1, bahan.dindingKontrol, x0, 1.45, belakang));
-    const lebarTirai = 9.0, nPanel = 8;
+    const lebarTirai = Math.min(w - 3.2, Math.max(9, w * 0.62)), nPanel = Math.round(lebarTirai / 1.1);
     for (let k = 0; k < nPanel; k++) {
       const pw = lebarTirai / nPanel;
       gedung.add(kotak(pw + 0.02, 1.95, 0.05, k % 2 ? bahan.tirai1 : bahan.tirai2,
@@ -555,8 +654,9 @@ function pembangunRekreasi(judul) {
 }
 
 function pembangunDivisi(d, pengawas) {
-  const JX = 2.3, JZ = 2.7;
-  const staf = (d.karyawan || []).filter((k) => k.nama !== pengawas);
+  const bengkel = d.ruangan === 'bengkel';
+  const JX = bengkel ? 2.8 : 2.3, JZ = 2.7;
+  const staf = (d.karyawan || []).filter((k) => k.nama !== pengawas && k.meja !== false);
   const n = Math.max(staf.length, 1);
   const kol = Math.min(3, n), bar = Math.ceil(n / 3);
   const w = kol * JX + 1.2, dd = bar * JZ + 1.0;
@@ -567,7 +667,7 @@ function pembangunDivisi(d, pengawas) {
     staf.forEach((k, j) => {
       const c = j % 3, b = Math.floor(j / 3);
       const kolBaris = Math.min(kol, staf.length - b * 3);
-      const m = buatMeja();
+      const m = bengkel ? buatMejaBengkel() : buatMeja();
       m.grup.position.set(cx + (c - (kolBaris - 1) / 2) * JX, 0, cz - dd / 2 + 0.9 + b * JZ);
       gedung.add(m.grup);
       const o = buatOrang(k.nama, campur(warna, 0.15).getStyle());
@@ -635,6 +735,12 @@ function bangunKantor(t) {
   if (!dipakai.has('bos')) baris.push(['bos']);
 
   const JARAK_X = 1.6, JARAK_Z = 2.3;
+  const lebarBaris = (row) => row.reduce((a, id) => a + ruang.get(id).w, 0) + JARAK_X * (row.length - 1);
+  // Ruang kontrol yang sendirian di barisnya melebar mengikuti baris terlebar.
+  if (cfgRk && !cfgRk.lebar) {
+    const terlebar = Math.max(0, ...baris.filter((r) => !r.includes('kontrol')).map(lebarBaris));
+    for (const row of baris) if (row.length === 1 && row[0] === 'kontrol') ruang.get('kontrol').w = Math.max(13.5, terlebar);
+  }
   let z = 0;
   for (const row of baris) {
     const rs = row.map((id) => ruang.get(id));
@@ -643,6 +749,15 @@ function bangunKantor(t) {
     let x = -lebar / 2;
     for (const r of rs) { r.bangun(x + r.w / 2, z + r.d / 2); x += r.w + JARAK_X; }
     z += dalam + JARAK_Z;
+  }
+
+  // Karyawan tanpa meja divisi (operator ruang kontrol) tetap dibuat sebagai orang.
+  for (const d of t.divisi || []) for (const k of d.karyawan || []) {
+    if (orang.has(k.nama) || k.nama === pengawas) continue;
+    const o = buatOrang(k.nama, campur(d.warna || '#94a3b8', 0.15).getStyle());
+    o.rumah = null; o.divisi = d.id;
+    gedung.add(o.grup);
+    orang.set(k.nama, o);
   }
 
   if (cfgRk && rk) {
@@ -680,8 +795,9 @@ function pasKamera() {
   // Dalam ruangan terlihat memendek karena kamera miring; lebar tidak.
   const jarakLebar = (ukuran.x / 2) / Math.tan(hfov / 2);
   const jarakDalam = (ukuran.z * arah.y / 2) / Math.tan(vfov / 2);
-  const jarak = Math.max(jarakLebar, jarakDalam) * 1.08 + 2;
+  const jarak = Math.max(jarakLebar, jarakDalam) * 1.12 + 2.5;
   kontrol.target.copy(pusat).setY(0);
+  kontrol.target.z += 0.6; // sisakan ruang untuk papan nama ruangan paling depan
   kamera.position.copy(kontrol.target).addScaledVector(arah, jarak);
   kontrol.maxDistance = jarak * 1.6;
   kontrol.update();
@@ -693,16 +809,17 @@ function aturTempat() {
   const modeShift = !!(cfg && rk && tugasKini && (tugasKini.pj || tugasKini.operator));
   let slot = 0;
   for (const [nama, o] of orang) {
-    let pos = o.rumah.pos, peran = '', di = 'rumah', berdiri = false;
+    let pos = o.rumah ? o.rumah.pos : null, peran = '', di = 'rumah', berdiri = false;
     if (cfg && nama === cfg.pengawas) peran = '';
-    else if (modeShift && (cfg.operator || []).includes(nama)) {
-      if (nama === tugasKini.operator) { pos = rk.kursiOperator; peran = 'Operator'; di = 'kontrol'; }
-      else if (nama === tugasKini.pj) { pos = rk.kursiPJ; peran = 'PJ'; di = 'kontrol'; }
-      else if (rk.tempatIstirahat.length) {
+    else if ((modeShift && (cfg.operator || []).includes(nama)) || !o.rumah) {
+      if (modeShift && nama === tugasKini.operator) { pos = rk.kursiOperator; peran = 'Operator'; di = 'kontrol'; }
+      else if (modeShift && nama === tugasKini.pj) { pos = rk.kursiPJ; peran = 'PJ'; di = 'kontrol'; }
+      else if (rk && rk.tempatIstirahat.length) {
         const t = rk.tempatIstirahat[slot % rk.tempatIstirahat.length]; slot++;
         pos = t.pos; berdiri = t.berdiri; di = t.ruang;
       }
     }
+    if (!pos) pos = new THREE.Vector3(0, 0, 0); // tanpa ruang kontrol & tanpa meja (seharusnya tidak terjadi)
     o.grup.position.copy(pos);
     o.kaki.visible = berdiri;
     o.di = di;
@@ -724,11 +841,13 @@ function layarUntuk(a) {
   const hasil = new Set();
   if (rk && a.divisi) hasil.add(rk.pcs[divisiKePc(a.divisi)]); // ruang kontrol memantau semua divisi
   const o = orang.get(a.karyawan);
-  if (o && o.di === 'rumah') hasil.add(o.rumah.layar);           // meja sendiri / meja pengawas
+  if (o && o.di === 'rumah' && o.rumah) hasil.add(o.rumah.layar);           // meja sendiri / meja pengawas
   return hasil;
 }
 
 function catatDivisi(a) {
+  semuaAksi.unshift(a);
+  if (semuaAksi.length > 5) semuaAksi.length = 5;
   if (!a.divisi) return;
   if (!dataDivisi.has(a.divisi)) dataDivisi.set(a.divisi, { aksi: [] });
   const d = dataDivisi.get(a.divisi);
@@ -744,6 +863,7 @@ function terapkanAksi(a, catat = true) {
   for (const l of g.aktif) if (!baru.has(l)) l.set('redup');
   for (const l of baru) { l.set('nyala'); g.layar.add(l); }
   if (rk && !baru.has(rk.pcs[divisiKePc(a.divisi)])) gambarPc(divisiKePc(a.divisi));
+  if (rk && pcSemua() >= 0) { gambarPc(pcSemua()); gambarTv(); }
   g.aktif = baru;
   if (g.orangAktif && g.orangAktif !== a.karyawan) gelembung(orang.get(g.orangAktif), '');
   const tugasAsli = a.asli ? ` (tugas ${a.asli})` : '';
@@ -877,12 +997,12 @@ function terima(p) {
     tim = p.tim; tugasKini = p.tugas || null; infoJadwal = p.jadwal || null;
     window.__tim = tim;
     tulisNamaKantor(tim.kantor);
-    giliran.clear(); dataDivisi.clear();
+    giliran.clear(); dataDivisi.clear(); semuaAksi.length = 0;
     laporanAkhir = p.laporan.length ? p.laporan[p.laporan.length - 1] : null;
     for (const a of p.aksi) catatDivisi(a);
     bangunKantor(tim);
     aturTempat();
-    for (const o of orang.values()) { o.rumah.layar.set('mati'); gelembung(o, ''); }
+    for (const o of orang.values()) { if (o.rumah) o.rumah.layar.set('mati'); gelembung(o, ''); }
     if (rk) for (const pc of rk.pcs) pc.mode = 'mati';
     daftarAksi.innerHTML = '<li class="kosong">Belum ada aksi tercatat.</li>';
     daftarLaporan.innerHTML = '<li class="kosong">Belum ada laporan. Manager menulis laporan tiap kali Claude selesai menjawab.</li>';

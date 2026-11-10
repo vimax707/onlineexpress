@@ -69,6 +69,11 @@ function petakan(tim, aksi) {
     for (const d of semuaDiv) for (const k of d.karyawan || []) {
       if (k.aturan && !k.aturan.semua && cocokAturan(k.aturan, aksi)) return { divisi: d.id, karyawan: k.nama };
     }
+    // Penampung khusus (mis. Wiwid) untuk aksi yang tidak cocok di mana pun.
+    if (tim.cadanganKaryawan) {
+      const d = semuaDiv.find((x) => (x.karyawan || []).some((k) => k.nama === tim.cadanganKaryawan));
+      if (d) return { divisi: d.id, karyawan: tim.cadanganKaryawan };
+    }
     const cad = semuaDiv.find((d) => d.id === tim.cadangan) || semuaDiv[semuaDiv.length - 1];
     if (cad) urutan.push(cad);
   }

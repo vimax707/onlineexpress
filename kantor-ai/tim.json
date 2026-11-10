@@ -22,13 +22,17 @@
     },
     {
       "id": "teknik",
-      "nama": "Teknik",
+      "nama": "Teknik & Riset",
       "warna": "#9ece6a",
+      "ruangan": "bengkel",
       "folder": ["kantor-ai/", ".claude/"],
       "karyawan": [
-        { "nama": "Bayu", "peran": "Frontend", "aturan": { "folder": ["kantor-ai/public/"], "ekstensi": [".html", ".css"] } },
-        { "nama": "Ayu", "peran": "Backend", "aturan": { "ekstensi": [".js", ".json"], "alat": ["Bash"] } },
-        { "nama": "Nana", "peran": "Pengelola pengaturan", "aturan": { "semua": true } }
+        { "nama": "Bayu", "peran": "Teknisi elektro & frontend", "aturan": { "folder": ["kantor-ai/public/"], "ekstensi": [".html", ".css"] } },
+        { "nama": "Ayu", "peran": "Backend", "meja": false, "aturan": { "ekstensi": [".js", ".json"], "alat": ["Bash"] } },
+        { "nama": "Anis", "peran": "Peneliti web", "meja": false, "aturan": { "alat": ["WebSearch", "WebFetch", "Grep", "Glob"] } },
+        { "nama": "Putri", "peran": "Teknisi elektro & layanan luar", "aturan": { "alat": ["mcp__*", "Artifact", "SendUserFile", "PushNotification"] } },
+        { "nama": "Nana", "peran": "Pengelola pengaturan", "meja": false, "aturan": { "semua": true } },
+        { "nama": "Wiwid", "peran": "Asisten umum (penampung)", "meja": false, "aturan": {} }
       ]
     },
     {
@@ -41,20 +45,10 @@
         { "nama": "Reza", "peran": "Penulis konten", "aturan": { "namaMengandung": ["konten", "ide", "caption", "artikel"] } },
         { "nama": "Diana", "peran": "Staf pemasaran", "aturan": { "semua": true } }
       ]
-    },
-    {
-      "id": "riset",
-      "nama": "Riset & Layanan Luar",
-      "warna": "#e0af68",
-      "folder": [],
-      "karyawan": [
-        { "nama": "Anis", "peran": "Peneliti web", "aturan": { "alat": ["WebSearch", "WebFetch", "Grep", "Glob"] } },
-        { "nama": "Putri", "peran": "Penghubung layanan", "aturan": { "alat": ["mcp__*", "Artifact", "SendUserFile", "PushNotification"] } },
-        { "nama": "Wiwid", "peran": "Asisten umum", "aturan": { "semua": true } }
-      ]
     }
   ],
-  "cadangan": "riset",
+  "cadangan": "teknik",
+  "cadanganKaryawan": "Wiwid",
   "ruangKontrol": {
     "_catatan": "Ruang kontrol 24 jam. 2 orang per shift: 1 penanggung jawab (PJ) + 1 operator, sesuai jadwal.xlsx (atau jadwal.csv). Operator yang tidak bertugas ada di ruang istirahat; pekerjaannya dikerjakan operator yang bertugas, dan aksi yang berdampak ke luar folder dikerjakan PJ.",
     "nama": "Ruang Kontrol",
@@ -71,7 +65,7 @@
     "ruangRekreasi": "Ruang Rekreasi"
   },
   "tataLetak": [
-    ["kontrol", "riset"],
+    ["kontrol"],
     ["umum", "teknik", "istirahat"],
     ["rekreasi", "pemasaran", "bos"]
   ]

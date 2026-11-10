@@ -1,7 +1,7 @@
 # Rangkuman Kantor AI: Sriwijaya Andalan Perkasa
 
 Catatan ini untuk melanjutkan pekerjaan: apa yang sudah dibuat, cara menjalankannya,
-dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 10 November 2026 (tata letak baru, Ruang Kontrol meniru ruang asli).
+dan di mana mengubah tampilan atau susunan tim. Terakhir diperbarui 10 November 2026 (Riset digabung ke Teknik, bengkel elektro, Ruang Kontrol selebar kantor).
 
 ## Apa ini
 
@@ -57,19 +57,22 @@ Versi lama (`node "$CLAUDE_PROJECT_DIR/..."`) hanya jalan di bash. Cadangannya a
 
 ## Susunan tim saat ini (`tim.json`)
 
+Karyawan bertanda * adalah operator Ruang Kontrol tanpa meja divisi (`"meja": false`):
+saat tidak bertugas mereka di Ruang Istirahat/Rekreasi.
+
 | Ruangan | Karyawan | Mendapat aksi untuk |
 |---|---|---|
 | Umum & Dokumentasi (biru) | Wanda | file `.md`/`.txt` di folder utama (README) |
 | | Flo | sisa file di folder utama |
-| Teknik (hijau) | Bayu | `kantor-ai/public/`, `.html`, `.css` |
-| | Ayu | `.js`, `.json`, perintah shell |
-| | Nana | sisa di `kantor-ai/` dan `.claude/` |
+| Teknik & Riset (hijau, bengkel elektro) | Bayu | `kantor-ai/public/`, `.html`, `.css` |
+| | Ayu* | `.js`, `.json`, perintah shell |
+| | Anis* | WebSearch, WebFetch, Grep, Glob |
+| | Putri | alat MCP (Gmail, Vercel, …), Artifact, kirim file |
+| | Nana* | sisa di `kantor-ai/` dan `.claude/` |
+| | Wiwid* | penampung aksi yang tidak cocok di mana pun (`"cadanganKaryawan"`) |
 | Pemasaran (merah muda) | Maya | nama file mengandung *iklan, ads, promo* |
 | | Reza | nama file mengandung *konten, ide, caption, artikel* |
 | | Diana | sisa di `pemasaran/` dan `konten/` |
-| Riset & Layanan Luar (kuning) | Anis | WebSearch, WebFetch, Grep, Glob |
-| | Putri | alat MCP (Gmail, Vercel, …), Artifact, kirim file |
-| | Wiwid | penampung aksi yang tidak cocok di mana pun |
 | Ruang Bos | Bos (kamu), Ena (Manager) | |
 
 Folder `pemasaran/` dan `konten/` belum ada. Isinya baru contoh, silakan ganti.
@@ -91,16 +94,18 @@ Edit `kantor-ai/tim.json` lalu simpan. Server memuat ulang file ini sendiri, tan
 ## Tata letak ruangan
 
 Diatur di `tim.json`, bagian `"tataLetak"`: daftar baris dari belakang ke depan, tiap baris berisi id ruang.
-Id yang bisa dipakai: id divisi (`umum`, `teknik`, `pemasaran`, `riset`), `kontrol`, `istirahat`, `rekreasi`, `bos`.
+Id yang bisa dipakai: id divisi (`umum`, `teknik`, `pemasaran`), `kontrol`, `istirahat`, `rekreasi`, `bos`.
 Ruang yang tidak disebut ditaruh di baris tambahan di depan, jadi tidak ada yang hilang. Simpan, dan kantor langsung berubah.
 
 Susunan sekarang (dilihat dari depan, Ruang Bos paling dekat):
 
 ```
-[ Ruang Kontrol (panjang)        ] [ Riset & Layanan Luar ]
-[ Umum ] [ Teknik ] [ Ruang Istirahat ]
+[ Ruang Kontrol (selebar kantor)                       ]
+[ Umum ] [ Teknik & Riset (bengkel) ] [ Ruang Istirahat ]
 [ Ruang Rekreasi ] [ Pemasaran ] [ Ruang Bos ]
 ```
+Ruang Kontrol yang sendirian di barisnya otomatis melebar mengikuti baris terlebar.
+Lebar tetap bisa dipaksa dengan `"lebar": 15` di bagian `"ruangKontrol"`.
 
 ## Ruang Kontrol & shift
 
@@ -114,7 +119,8 @@ Pengaturan di `tim.json`, bagian `"ruangKontrol"`. Jadwal di `kantor-ai/jadwal.x
 | Bisa jadi PJ (4) | Wiwid, Flo, Diana, Anis |
 | Pengawas | Maya (mejanya dipindah dari Pemasaran ke belakang operator di Ruang Kontrol) |
 | Bentuk ruang | Meniru foto ruang kontrol asli: dinding jendela bertirai hijau mint, TV 65" di tengah, TV 43" di kiri pada tiang, 3 meja kayu dengan 6 PC berjajar, CPU dengan 3 kipas RGB di bawah meja, kursi kantor hitam, AC, rak jaringan, lantai keramik putih |
-| Layar | PC 1–4 = Umum, Teknik, Pemasaran, Riset → tampil di **TV 65"**; PC 5 = shift & petugas, PC 6 = laporan Manager → tampil di **TV 43"** |
+| Layar | PC 1–3 = Umum, Teknik & Riset, Pemasaran; PC 4 = semua aktivitas kantor → tampil di **TV 65"**; PC 5 = shift & petugas, PC 6 = laporan Manager → tampil di **TV 43"**. (Kalau divisi ada 4 atau lebih, PC 1–4 = 4 divisi pertama.) |
+| Bengkel Teknik & Riset | 2 meja kerja elektro (Bayu, Putri): alas ESD, papan alat (obeng, tang, kunci), monitor, power supply kecil, stasiun solder, bor, multimeter, charger aki + aki di rak bawah. Angka power supply menyala hanya saat teknisinya bekerja. Diatur dengan `"ruangan": "bengkel"` di divisi. |
 
 Cara kerjanya:
 - Petugas shift duduk di Ruang Kontrol (operator di depan PC 1–3, PJ di depan PC 4–6).
@@ -156,6 +162,7 @@ paling banyak 1 shift sehari, tidak langsung dari Malam ke Pagi.
 | Isi Ruang Kontrol (tirai, TV, meja, PC, kursi) | `kantor.js`, `pembangunKontrol` |
 | Ruang Istirahat (sofa, meja kopi, bean bag) | `kantor.js`, `pembangunIstirahat` |
 | Ruang Rekreasi (pingpong, bangku, mesin minuman) | `kantor.js`, `pembangunRekreasi` |
+| Meja kerja elektro (power supply, bor, charger aki, …) | `kantor.js`, `buatMejaBengkel` |
 | Warna kipas RGB | `kantor.js`, `WARNA_KIPAS` |
 | Ukuran nama karyawan, gelembung label | `gaya.css`, `.nama`, `.gelembung` |
 | Panel kanan (lebar 360px, kartu laporan) | `gaya.css`, `#tata`, `.laporan`, `.aksi` |
@@ -211,6 +218,8 @@ Perubahan `server.js`, `pemetaan.js`, atau `hook.js` butuh restart server (tutup
    Ruang Istirahat & Rekreasi, jadwal shift dari Excel
 9. Tata letak baru lewat `tataLetak`: Ruang Kontrol panjang di tempat Umum & Teknik, meniru foto ruang
    kontrol asli; Ruang Istirahat dan Rekreasi dipisah; Pemasaran di sebelah Ruang Bos
+10. Riset digabung ke Teknik ("Teknik & Riset", bengkel elektro untuk Bayu & Putri), Ruang Kontrol
+    melebar mengambil tempat Riset, PC 4 menampilkan semua aktivitas
 
 Semua ada di branch `claude/practical-gauss-ngei1a` di GitHub `vimax707/onlineexpress`.
 
