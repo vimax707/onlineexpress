@@ -1070,7 +1070,7 @@ const disamping = (o, dx, dz) => () => o && o.tempat && o.tempat.clone().add(new
 function ringkasKontrol(lap) {
   const k = lap.kontrol || { jumlah: 0, perOrang: {}, luar: 0 };
   const p = lap.petugas || tugasKini;
-  const shift = p ? `Shift ${p.shift}` : 'Ruang kontrol';
+  const shift = p ? `Shift ${p.shift}` + (tugasKini && p.shift !== tugasKini.shift ? ` (${p.hari || ''})`.replace(' ()', '') : '') : 'Ruang kontrol';
   if (!lap.kontrol) return `${shift}: ${lap.ringkas}`;
   if (!k.jumlah) return `${shift}: tidak ada aksi di ruang kontrol`;
   const siapa = Object.entries(k.perOrang).map(([n, j]) => `${n} ${j}`).join(', ');
@@ -1082,12 +1082,12 @@ function alurLaporan(lap) {
   const maya = cfg && cfg.pengawas ? orang.get(cfg.pengawas) : null;
   const langkah = [];
   // 1) PJ (atau operator bila PJ kosong) melapor ke Maya — hanya petugas yang memang sedang di ruang kontrol.
-  // PJ selalu melapor lebih dulu. Data petugas dari laporan; kalau server versi lama
-  // tidak mengirimnya, pakai shift yang sedang berjalan.
-  const petugas = lap.petugas || tugasKini;
-  const namaPJ = petugas && (petugas.pj || petugas.operator);
-  const pj = namaPJ ? orang.get(namaPJ) : null;
-  if (maya && pj && pj.di === 'kontrol') {
+  // PJ yang SEDANG bertugas di ruang kontrol selalu melapor lebih dulu (laporan bisa
+  // berasal dari shift sebelumnya; yang menyerahkan tetap petugas yang ada sekarang).
+  const diKontrol = [...orang.entries()].filter(([, o]) => o.di === 'kontrol');
+  const pjKini = tugasKini && (tugasKini.pj || tugasKini.operator);
+  const [namaPJ, pj] = diKontrol.find(([n]) => n === pjKini) || diKontrol[0] || [null, null];
+  if (maya && pj) {
     langkah.push(
       aksiL(() => gelembung(pj, 'membawa laporan ke ' + cfg.pengawas)),
       jalanKe(pj, disamping(maya, 0.8, 0.15)),
@@ -1102,7 +1102,7 @@ function alurLaporan(lap) {
     langkah.push(
       aksiL(() => {
         if (maya.rumah) { layarSebelum = maya.rumah.layar; layarSebelum.set('nyala'); }
-        gelembung(maya, pj && pj.di === 'kontrol' ? `menerima laporan ${namaPJ}, menyusun laporan pengawasan…` : 'menyusun laporan pengawasan…');
+        gelembung(maya, pj ? `menerima laporan ${namaPJ}, menyusun laporan pengawasan…` : 'menyusun laporan pengawasan…');
       }),
       tunggu(4500),
       aksiL(() => {

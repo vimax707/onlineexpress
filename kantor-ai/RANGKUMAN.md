@@ -97,7 +97,8 @@ Dipicu oleh event `Stop` yang asli. Isi setiap gelembung berasal dari laporan ya
 1. **PJ shift selalu melapor lebih dulu**: berdiri, berjalan ke meja **Maya**, dan melapor bagian ruang kontrol:
    *"lapor: Shift Malam: 2 aksi (Ayu 1, Wiwid 1) · ⚠ 1 luar folder"*. Lalu kembali ke kursinya.
    Kalau PJ kosong di jadwal, operator yang melapor. Kalau tidak ada petugas di ruang kontrol, langkah ini dilewati.
-   Siapa PJ diambil dari laporan; kalau server versi lama tidak mengirimnya, dari shift yang sedang berjalan.
+   Yang berjalan selalu **PJ yang sedang bertugas sekarang**, walaupun laporannya berasal dari shift sebelumnya
+   (gelembung lalu menyebut asal laporannya, misalnya *"Shift Pagi (Senin)"*).
 2. **Maya** baru mulai setelah menerima laporan PJ: komputernya menyala, *"menerima laporan Wiwid, menyusun
    laporan pengawasan…"* (4,5 detik), lalu berjalan **pelan** (1,1 m/detik) ke **Ena**, menyerahkan laporan
    (*"laporan: 3 karyawan, ⚠ 1 luar folder"*), dan kembali.
@@ -248,6 +249,7 @@ Perubahan `server.js`, `pemetaan.js`, atau `hook.js` butuh restart server (tutup
 11. PJ duduk di kiri; alur laporan berantai PJ → Maya → Ena → Bos; tombol Putar ulang
 12. PJ selalu melapor dulu (juga dengan server lama), Maya berjalan lebih pelan, semua orang berjalan
     lewat pintu dan lorong (tidak menembus dinding)
+13. Perbaikan: PJ tidak bergerak bila laporan terakhir berasal dari shift lain. Kini yang melapor selalu PJ yang bertugas
 
 Semua ada di branch `claude/practical-gauss-ngei1a` di GitHub `vimax707/onlineexpress`.
 
